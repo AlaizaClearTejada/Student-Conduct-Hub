@@ -140,13 +140,17 @@
                                     <td class="px-8 py-4">
                                         @php
                                             $statusStyles = [
-                                                'Pending Review' => 'bg-yellow-100 text-yellow-800',
-                                                'Sanction Active' => 'bg-[#590004] text-[#f3f3f3]',
-                                                'Resolved' => 'bg-gray-100 text-gray-700',
-                                                'Appealed' => 'bg-blue-100 text-blue-800',
+                                                'Notice Sent' => 'bg-yellow-100 text-yellow-800 border-yellow-300',
+                                                'Pending Review' => 'bg-amber-100 text-amber-800 border-amber-300',
+                                                'Pending' => 'bg-amber-100 text-amber-800 border-amber-300',
+                                                'Sanction Active' => 'bg-red-100 text-red-800 border-red-300',
+                                                'Appealed' => 'bg-blue-100 text-blue-800 border-blue-300',
+                                                'Resolved' => 'bg-green-100 text-green-800 border-green-300',
+                                                'Dismissed' => 'bg-slate-100 text-slate-700 border-slate-300',
+                                                'Warning' => 'bg-orange-100 text-orange-800 border-orange-300',
                                             ];
                                         @endphp
-                                        <span class="px-3 py-1 {{ $statusStyles[$record->status] }} rounded-full text-xs font-semibold">
+                                        <span class="px-3 py-1 {{ $statusStyles[$record->status] ?? 'bg-gray-100 text-gray-800 border-gray-300' }} rounded-full text-xs font-semibold">
                                             {{ $record->status }}
                                         </span>
                                     </td>

@@ -7,6 +7,7 @@ use App\Models\IncidentReport;
 use App\Models\OffenseRule;
 use App\Models\User;
 use App\Models\ViolationRecord;
+use App\Services\DecisionSupportService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -79,7 +80,7 @@ class StaffIncidentController extends Controller
      *
      * Validates input, securely uploads evidence, and triggers notification to OSDW.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, DecisionSupportService $decisionSupport): RedirectResponse
     {
         // 1. Strict Validation based on CSU rules
         $validated = $request->validate([
@@ -96,7 +97,11 @@ class StaffIncidentController extends Controller
             $evidencePath = $request->file('evidence')->store('confidential_evidence', 'local');
         }
 
-        // 3. Create the Report
+        // 3. Analyze complaint with Decision Support Service
+        $analysis = $decisionSupport->analyze($validated['description']);
+        $topRecommendation = $analysis['top_recommendation'] ?? [];
+
+        // 4. Create the Report
         $report = IncidentReport::create([
             'tracking_number' => 'INC-'.date('Y').'-'.strtoupper(Str::random(5)),
             'reporter_id' => Auth::id(),
@@ -105,9 +110,14 @@ class StaffIncidentController extends Controller
             'report_type' => $validated['report_type'],
             'description' => $validated['description'],
             'evidence_path' => $evidencePath,
+            'recommended_violation' => $topRecommendation['violation'] ?? null,
+            'recommended_sanction' => $topRecommendation['recommendation'] ?? null,
+            'severity' => $topRecommendation['severity'] ?? null,
+            'decision_score' => $topRecommendation['score'] ?? 0,
+            'matched_keywords' => $topRecommendation['matched_keywords'] ?? null,
         ]);
 
-        // 4. Trigger Notification to OSDW (Admin)
+        // 5. Trigger Notification to OSDW (Admin)
         Event::dispatch(new IncidentReported($report));
 
         return redirect()->route('staff.dashboard')

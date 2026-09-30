@@ -1,4 +1,4 @@
-﻿<x-student-app-layout>
+<x-student-app-layout>
     <x-slot name="header">
         University Policy - Student Conduct Manual
     </x-slot>
@@ -340,7 +340,7 @@
                         </svg>
                     </div>
                     <div>
-                        <p class="text-sm font-bold text-white leading-none">CSU Policy Assistant</p>
+                        <p class="text-sm font-bold text-white leading-none">JAM AI Chatbot</p>
                         <p class="text-xs text-white/60 mt-0.5" x-text="started ? studentName + ' · ' + (lang === 'fil' ? 'Filipino' : 'English') : 'AI-Powered - Claude'"></p>
                     </div>
                 </div>
@@ -388,8 +388,8 @@
                     </svg>
                 </div>
                 <div class="text-center">
-                    <p class="font-bold text-gray-800 text-base">CSU AI Policy Assistant</p>
-                    <p class="text-xs text-gray-500 mt-1">Powered by Claude AI &middot; 58 offense knowledge base</p>
+                    <p class="font-bold text-gray-800 text-base">JAM AI Chatbot</p>
+                    <p class="text-xs text-gray-500 mt-1">CSU AI Policy Assistant &middot; Powered by Claude AI</p>
                 </div>
                 <div class="w-full space-y-3">
                     <div>

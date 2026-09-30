@@ -25,7 +25,7 @@ class LoginSecurityTest extends TestCase
         ]);
 
         $component = Volt::test('pages.auth.login')
-            ->set('form.email', 'test@example.com')
+            ->set('form.login', 'test@example.com')
             ->set('form.password', 'password123');
 
         $component->call('login');
@@ -57,7 +57,7 @@ class LoginSecurityTest extends TestCase
         ]);
 
         $component = Volt::test('pages.auth.login')
-            ->set('form.email', 'test@example.com')
+            ->set('form.login', 'test@example.com')
             ->set('form.password', 'wrongpassword');
 
         $component->call('login');
@@ -89,14 +89,14 @@ class LoginSecurityTest extends TestCase
         // Attempt 5 failed logins
         for ($i = 0; $i < 5; $i++) {
             Volt::test('pages.auth.login')
-                ->set('form.email', $email)
+                ->set('form.login', $email)
                 ->set('form.password', 'wrongpassword')
                 ->call('login');
         }
 
         // 6th attempt should be rate limited
         $component = Volt::test('pages.auth.login')
-            ->set('form.email', $email)
+            ->set('form.login', $email)
             ->set('form.password', 'wrongpassword')
             ->call('login');
 
@@ -146,7 +146,7 @@ class LoginSecurityTest extends TestCase
 
         // Login using Livewire
         Volt::test('pages.auth.login')
-            ->set('form.email', 'test@example.com')
+            ->set('form.login', 'test@example.com')
             ->set('form.password', 'password123')
             ->call('login');
 
@@ -171,19 +171,19 @@ class LoginSecurityTest extends TestCase
 
         // Test with non-existent user
         $component1 = Volt::test('pages.auth.login')
-            ->set('form.email', 'nonexistent@example.com')
+            ->set('form.login', 'nonexistent@example.com')
             ->set('form.password', 'password123')
             ->call('login');
 
         // Test with wrong password for existing user
         $component2 = Volt::test('pages.auth.login')
-            ->set('form.email', 'exists@example.com')
+            ->set('form.login', 'exists@example.com')
             ->set('form.password', 'wrongpassword')
             ->call('login');
 
         // Both should have errors on the email field with the same generic message
-        $component1->assertHasErrors('form.email');
-        $component2->assertHasErrors('form.email');
+        $component1->assertHasErrors('form.login');
+        $component2->assertHasErrors('form.login');
     }
 
     /**
@@ -197,7 +197,7 @@ class LoginSecurityTest extends TestCase
         ]);
 
         Volt::test('pages.auth.login')
-            ->set('form.email', 'test@example.com')
+            ->set('form.login', 'test@example.com')
             ->set('form.password', 'password123')
             ->set('form.remember', true)
             ->call('login');
@@ -260,7 +260,7 @@ class LoginSecurityTest extends TestCase
         ]);
 
         Volt::test('pages.auth.login')
-            ->set('form.email', 'test@example.com')
+            ->set('form.login', 'test@example.com')
             ->set('form.password', 'password123')
             ->call('login');
 

@@ -10,8 +10,10 @@ use App\Models\CaseEvidence;
 use App\Models\CaseWorkflowLog;
 use App\Models\IncidentReport;
 use App\Models\OffenseRule;
+use App\Models\TribunalCase;
 use App\Models\User;
 use App\Models\ViolationRecord;
+use App\Services\TribunalCaseRouter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -214,7 +216,10 @@ class CaseManagement extends Component
             'assigned_to_sdt' => true,
             'sdt_members' => $this->selectedSDTMembers,
             'status' => 'Pending Review',
+            'investigation_type' => 'Tribunal',
         ]);
+
+        app(TribunalCaseRouter::class)->routeViolationRecord($this->selectedCase);
 
         CaseWorkflowLog::logAction(
             $this->selectedCase->id,
@@ -350,7 +355,7 @@ class CaseManagement extends Component
     {
         $report = IncidentReport::with('offense')->findOrFail($reportId);
         $this->acceptCaseId = $reportId;
-        $this->acceptInvestigationType = ($report->report_type === 'Formal Charge' || $report->offense?->gravity === 'major')
+        $this->acceptInvestigationType = ($report->report_type === 'Formal Charge' || $report->offense?->requiresTribunalReview())
             ? 'Tribunal'
             : 'Summary';
         $this->acceptDateOfIncident = $report->created_at->toDateString();
@@ -371,6 +376,9 @@ class CaseManagement extends Component
 
         $report = IncidentReport::with('offense')->findOrFail($this->acceptCaseId);
         $offense = $report->offense;
+        $isTribunalCase = $this->acceptInvestigationType === 'Tribunal' || $offense?->requiresTribunalReview();
+        $investigationType = $isTribunalCase ? 'Tribunal' : $this->acceptInvestigationType;
+        $tribunalCase = TribunalCase::where('incident_report_id', $report->id)->first();
 
         // Count prior offenses to determine progressive sanction
         $offenseCount = ViolationRecord::where('student_id', $report->student_id)
@@ -382,21 +390,23 @@ class CaseManagement extends Component
             ?? '';
 
         $record = ViolationRecord::create([
-            'case_tracking_number'  => ViolationRecord::generateCaseTrackingNumber(),
-            'student_id'            => $report->student_id,
-            'offense_id'            => $report->offense_id,
-            'offense_count'         => $offenseCount,
-            'applied_sanction'      => $appliedSanction,
-            'reported_by'           => $report->reporter_id,
-            'status'                => 'Pending Review',
-            'investigation_type'    => $this->acceptInvestigationType,
-            'incident_description'  => $report->description,
-            'date_of_incident'      => $this->acceptDateOfIncident,
-            'charge_filed_date'     => now()->toDateString(),
-            'answer_deadline'       => now()->addWeekdays(5)->toDateString(),
+            'case_tracking_number' => $tribunalCase?->case_number ?? ViolationRecord::generateCaseTrackingNumber(),
+            'student_id' => $report->student_id,
+            'offense_id' => $report->offense_id,
+            'offense_count' => $offenseCount,
+            'applied_sanction' => $appliedSanction,
+            'reported_by' => $report->reporter_id,
+            'status' => 'Pending Review',
+            'investigation_type' => $investigationType,
+            'incident_description' => $report->description,
+            'date_of_incident' => $this->acceptDateOfIncident,
+            'charge_filed_date' => now()->toDateString(),
+            'answer_deadline' => now()->addWeekdays(5)->toDateString(),
         ]);
 
         // Transfer evidence from IncidentReport to CaseEvidence
+        $tribunalDocumentPath = $report->evidence_path;
+
         if ($report->evidence_path && Storage::disk('local')->exists($report->evidence_path)) {
             $fileName = basename($report->evidence_path);
             $mime = Storage::disk('local')->mimeType($report->evidence_path);
@@ -405,20 +415,25 @@ class CaseManagement extends Component
             $evidenceType = str_starts_with($mime, 'image/') ? 'Photo Evidence' : ((str_contains($mime, 'pdf') || str_contains($mime, 'word')) ? 'Document' : 'Other');
 
             // Copy to case-evidence directory
-            $newPath = 'case-evidence/' . $record->case_tracking_number . '/' . $fileName;
+            $newPath = 'case-evidence/'.$record->case_tracking_number.'/'.$fileName;
             Storage::disk('local')->put($newPath, Storage::disk('local')->get($report->evidence_path));
+            $tribunalDocumentPath = $newPath;
 
             CaseEvidence::create([
                 'violation_record_id' => $record->id,
-                'uploaded_by'         => $report->reporter_id,
-                'file_name'           => $fileName,
-                'file_path'           => $newPath,
-                'file_type'           => $fileType,
-                'mime_type'           => $mime,
-                'file_size'           => $size,
-                'description'         => 'Evidence transferred from incident report ' . $report->tracking_number,
-                'evidence_type'       => $evidenceType,
+                'uploaded_by' => $report->reporter_id,
+                'file_name' => $fileName,
+                'file_path' => $newPath,
+                'file_type' => $fileType,
+                'mime_type' => $mime,
+                'file_size' => $size,
+                'description' => 'Evidence transferred from incident report '.$report->tracking_number,
+                'evidence_type' => $evidenceType,
             ]);
+        }
+
+        if ($isTribunalCase) {
+            app(TribunalCaseRouter::class)->routeViolationRecord($record, $report, $tribunalDocumentPath);
         }
 
         CaseWorkflowLog::logAction(
@@ -464,8 +479,8 @@ class CaseManagement extends Component
     {
         $case = $this->selectedCase;
 
-        if ($case->status !== 'Pending Review') {
-            session()->flash('success', 'Notice has already been sent for this case.');
+        if (! $case->canSendNotice()) {
+            session()->flash('success', 'Maximum number of notices (3) have already been sent for this case.');
             $this->showSendNoticeModal = false;
 
             return;
@@ -477,9 +492,13 @@ class CaseManagement extends Component
         // Send the email notification
         Mail::to($student->email)->send(new StudentChargeNoticeMail($case, $student));
 
+        $newCount = ($case->notice_count ?? 0) + 1;
+        $ordinal = $newCount === 1 ? '1st' : ($newCount === 2 ? '2nd' : '3rd');
+
         // Update the case
         $case->update([
             'status' => 'Notice Sent',
+            'notice_count' => $newCount,
             'notice_sent_at' => now(),
             'notice_sent_by' => Auth::id(),
             'answer_deadline' => now()->addWeekdays(5),
@@ -489,11 +508,11 @@ class CaseManagement extends Component
             $case->id,
             Auth::id(),
             'Charge Filed',
-            "Formal notice of charge sent to student ({$student->email}). Answer deadline: ".$case->answer_deadline->format('M d, Y'),
-            ['student_email' => $student->email, 'answer_deadline' => $case->answer_deadline->toDateString()]
+            "{$ordinal} formal notice of charge sent to student ({$student->email}). Answer deadline: ".$case->answer_deadline->format('M d, Y'),
+            ['student_email' => $student->email, 'answer_deadline' => $case->answer_deadline->toDateString(), 'notice_count' => $newCount]
         );
 
-        session()->flash('success', "Formal notice sent to {$student->name} for Case #{$case->case_tracking_number}. Answer deadline: {$case->answer_deadline->format('M d, Y')}.");
+        session()->flash('success', "{$ordinal} formal notice sent to {$student->name} for Case #{$case->case_tracking_number}. Answer deadline: {$case->answer_deadline->format('M d, Y')}.");
 
         $this->showSendNoticeModal = false;
     }

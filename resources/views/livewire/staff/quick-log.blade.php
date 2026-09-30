@@ -54,7 +54,10 @@
                             id="studentId" 
                             wire:model.live.debounce.500ms="studentId"
                             x-init="$nextTick(() => $el.focus())"
-                            placeholder="Enter student ID or search..."
+                            inputmode="numeric"
+                            pattern="[0-9]{2}-[0-9]{5}"
+                            maxlength="8"
+                            placeholder="e.g., 24-00001"
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#590004] focus:border-transparent transition-all @error('studentId') border-red-500 @enderror"
                         >
                         @error('studentId')
@@ -67,9 +70,14 @@
                                 <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                                <span class="text-green-800 font-medium">
-                                    Verified: <span class="font-bold">{{ $studentInitials }}</span> - {{ $studentProgram }}
-                                </span>
+                                <div class="flex-1">
+                                    <span class="text-green-800 font-medium block">
+                                        Verified: <span class="font-bold">{{ $studentInitials }}</span> - {{ $studentProgram }}
+                                    </span>
+                                    <span class="text-green-700 text-xs mt-0.5 block">
+                                        This will be recorded as the student's <strong>{{ $offenseOrdinal }} offense</strong>.
+                                    </span>
+                                </div>
                             </div>
                         @elseif($studentId && !$studentVerified)
                             <div wire:loading.remove wire:target="updatedStudentId" class="mt-2 flex items-center gap-2 text-sm bg-red-50 border border-red-200 rounded-lg p-3">

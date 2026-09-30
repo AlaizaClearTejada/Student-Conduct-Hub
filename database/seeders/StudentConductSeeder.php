@@ -22,7 +22,7 @@ class StudentConductSeeder extends Seeder
         $staffRole = Role::firstOrCreate(['name' => 'staff']);
 
         // Create test staff members (reporters)
-        $staffMembers = User::factory()->count(3)->create();
+        $staffMembers = User::factory()->staff()->count(3)->create();
         foreach ($staffMembers as $staff) {
             $staff->assignRole('staff');
         }
@@ -100,7 +100,7 @@ class StudentConductSeeder extends Seeder
         }
 
         // Create test students with violation records
-        $students = User::factory()->count(5)->create();
+        $students = User::factory()->student()->count(5)->create();
         foreach ($students as $student) {
             $student->assignRole('student');
 

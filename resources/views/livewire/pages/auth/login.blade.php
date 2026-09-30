@@ -21,9 +21,21 @@ new #[Layout('layouts.guest')] class extends Component
 
         Session::regenerate();
 
-        // Role-based redirect (ignore intended URL for dashboards)
         $user = Auth::user();
 
+        // Forced password reset takes highest priority
+        if ($user->must_change_password) {
+            $this->redirect(route('password.force-reset', absolute: false), navigate: true);
+            return;
+        }
+
+        // MFA challenge for privileged roles
+        if ($user->hasMfaRequired()) {
+            $this->redirect(route('mfa.verify', absolute: false), navigate: true);
+            return;
+        }
+
+        // Role-based redirect (ignore intended URL for dashboards)
         if ($user->hasRole('administrator')) {
             $this->redirect(route('admin.dashboard', absolute: false), navigate: true);
             return;
@@ -58,25 +70,25 @@ new #[Layout('layouts.guest')] class extends Component
     </div>
 
     <form wire:submit="login" id="loginForm" novalidate>
-        <!-- Email Address with Floating Label -->
+        <!-- Email or Username with Floating Label -->
         <div class="floating-label-group">
             <input 
-                wire:model="form.email" 
-                id="email" 
-                type="email" 
-                name="email" 
+                wire:model="form.login" 
+                id="login" 
+                type="text" 
+                name="login" 
                 required 
                 autofocus 
                 autocomplete="username"
                 placeholder=" "
                 class="floating-input peer"
-                aria-describedby="email-error"
+                aria-describedby="login-error"
             />
-            <label for="email" class="floating-label">
-                Email Address
+            <label for="login" class="floating-label">
+                Email or Username
             </label>
-            @error('form.email')
-                <p class="mt-1 text-sm" style="color: #a50104;" id="email-error">
+            @error('form.login')
+                <p class="mt-1 text-sm" style="color: #a50104;" id="login-error">
                     <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                     </svg>
@@ -201,20 +213,19 @@ new #[Layout('layouts.guest')] class extends Component
 <script>
     // Enhanced Client-side Validation
     document.getElementById('loginForm')?.addEventListener('submit', function(e) {
-        const emailInput = document.getElementById('email');
+        const loginInput = document.getElementById('login');
         const passwordInput = document.getElementById('password');
         let isValid = true;
 
-        // Email validation with enhanced regex
-        if (emailInput) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(emailInput.value.trim())) {
-                emailInput.classList.add('error');
-                emailInput.setCustomValidity('Please enter a valid email address');
+        // Login field validation (email or username)
+        if (loginInput) {
+            if (loginInput.value.trim().length < 2) {
+                loginInput.classList.add('error');
+                loginInput.setCustomValidity('Please enter your email or username');
                 isValid = false;
             } else {
-                emailInput.classList.remove('error');
-                emailInput.setCustomValidity('');
+                loginInput.classList.remove('error');
+                loginInput.setCustomValidity('');
             }
         }
 
@@ -237,7 +248,7 @@ new #[Layout('layouts.guest')] class extends Component
     });
 
     // Clear error state on input
-    document.getElementById('email')?.addEventListener('input', function() {
+    document.getElementById('login')?.addEventListener('input', function() {
         this.classList.remove('error');
         this.setCustomValidity('');
     });

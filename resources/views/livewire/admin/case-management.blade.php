@@ -308,11 +308,16 @@
                                         <button wire:click="viewCase({{ $case->id }})" class="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="View Details">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                         </button>
-                                        @if($case->status === 'Pending Review')
-                                            <button wire:click="openSendNoticeModal({{ $case->id }})" class="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Send Notice to Student">
+                                        @if($case->canSendNotice())
+                                            @php
+                                                $nextNotice = ($case->notice_count ?? 0) + 1;
+                                                $ordinal = $nextNotice === 1 ? '1st' : ($nextNotice === 2 ? '2nd' : '3rd');
+                                            @endphp
+                                            <button wire:click="openSendNoticeModal({{ $case->id }})" class="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Send {{ $ordinal }} Notice to Student">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                                             </button>
-                                        @elseif($case->status === 'Notice Sent')
+                                        @endif
+                                        @if($case->status === 'Notice Sent')
                                             @if($case->student_answer_submitted_date || $case->isAnswerOverdue())
                                                 <button wire:click="advanceToInvestigation({{ $case->id }})" class="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="Move to Investigation">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
@@ -395,54 +400,54 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-200 border-b border-gray-200">
                             {{-- Student Information --}}
                             <div class="p-6">
-                                <div class="flex items-center gap-2 mb-4">
+                                <div class="flex items-center gap-2 mb-6">
                                     <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
                                         <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                                     </div>
                                     <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Respondent Information</h4>
                                 </div>
-                                <div class="space-y-3">
+                                <div class="space-y-5">
                                     <div>
                                         <p class="text-xs text-gray-400 uppercase tracking-wide">Full Name</p>
-                                        <p class="text-sm font-semibold text-gray-900 mt-0.5">{{ $selectedCase->student?->name ?? 'N/A' }}</p>
+                                        <p class="text-sm font-semibold text-gray-900 mt-1">{{ $selectedCase->student?->name ?? 'N/A' }}</p>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-3">
+                                    <div class="grid grid-cols-2 gap-4">
                                         <div>
                                             <p class="text-xs text-gray-400 uppercase tracking-wide">Student ID</p>
-                                            <p class="text-sm font-medium text-gray-800 font-mono mt-0.5">{{ $selectedCase->student?->student_id ?? 'N/A' }}</p>
+                                            <p class="text-sm font-medium text-gray-800 font-mono mt-1">{{ $selectedCase->student?->student_id ?? 'N/A' }}</p>
                                         </div>
                                         <div>
                                             <p class="text-xs text-gray-400 uppercase tracking-wide">Year / Section</p>
-                                            <p class="text-sm font-medium text-gray-800 mt-0.5">{{ $selectedCase->student?->year_level ?? '—' }} - {{ $selectedCase->student?->section ?? '—' }}</p>
+                                            <p class="text-sm font-medium text-gray-800 mt-1">{{ $selectedCase->student?->year_level ?? '—' }} - {{ $selectedCase->student?->section ?? '—' }}</p>
                                         </div>
                                     </div>
                                     <div>
                                         <p class="text-xs text-gray-400 uppercase tracking-wide">College / Department</p>
-                                        <p class="text-sm font-medium text-gray-800 mt-0.5">{{ $selectedCase->student?->college ?? 'N/A' }}</p>
+                                        <p class="text-sm font-medium text-gray-800 mt-1">{{ $selectedCase->student?->college ?? 'N/A' }}</p>
                                     </div>
                                 </div>
                             </div>
 
                             {{-- Case Information --}}
                             <div class="p-6">
-                                <div class="flex items-center gap-2 mb-4">
+                                <div class="flex items-center gap-2 mb-6">
                                     <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
                                         <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
                                     </div>
                                     <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Case Information</h4>
                                 </div>
-                                <div class="space-y-3">
+                                <div class="space-y-5">
                                     <div>
                                         <p class="text-xs text-gray-400 uppercase tracking-wide">Offense Charged</p>
-                                        <p class="text-sm font-semibold text-gray-900 mt-0.5">{{ $selectedCase->offenseRule?->title ?? 'N/A' }}</p>
-                                        <div class="flex items-center gap-2 mt-1">
+                                        <p class="text-sm font-semibold text-gray-900 mt-1">{{ $selectedCase->offenseRule?->title ?? 'N/A' }}</p>
+                                        <div class="flex items-center gap-2 mt-1.5">
                                             @if($selectedCase->offenseRule?->code)
                                                 <span class="text-xs font-mono text-gray-500">{{ $selectedCase->offenseRule->code }}</span>
                                             @endif
                                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">{{ $selectedCase->offenseRule?->category ?? 'N/A' }}</span>
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-3">
+                                    <div class="grid grid-cols-2 gap-4">
                                         <div>
                                             <p class="text-xs text-gray-400 uppercase tracking-wide">Investigation Type</p>
                                             <span class="inline-flex items-center mt-1 px-2.5 py-0.5 rounded-full text-xs font-semibold
@@ -453,17 +458,17 @@
                                         </div>
                                         <div>
                                             <p class="text-xs text-gray-400 uppercase tracking-wide">Offense Count</p>
-                                            <p class="text-sm font-medium text-gray-800 mt-0.5">{{ $selectedCase->offense_count ?? 1 }}{{ $selectedCase->offense_count === 1 ? 'st' : ($selectedCase->offense_count === 2 ? 'nd' : ($selectedCase->offense_count === 3 ? 'rd' : 'th')) }} Offense</p>
+                                            <p class="text-sm font-medium text-gray-800 mt-1">{{ $selectedCase->offense_count ?? 1 }}{{ $selectedCase->offense_count === 1 ? 'st' : ($selectedCase->offense_count === 2 ? 'nd' : ($selectedCase->offense_count === 3 ? 'rd' : 'th')) }} Offense</p>
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-3">
+                                    <div class="grid grid-cols-2 gap-4">
                                         <div>
                                             <p class="text-xs text-gray-400 uppercase tracking-wide">Reported By</p>
-                                            <p class="text-sm font-medium text-gray-800 mt-0.5">{{ $selectedCase->reporter?->name ?? 'N/A' }}</p>
+                                            <p class="text-sm font-medium text-gray-800 mt-1">{{ $selectedCase->reporter?->name ?? 'N/A' }}</p>
                                         </div>
                                         <div>
                                             <p class="text-xs text-gray-400 uppercase tracking-wide">Date of Incident</p>
-                                            <p class="text-sm font-medium text-gray-800 mt-0.5">{{ $selectedCase->date_of_incident?->format('F d, Y') ?? 'N/A' }}</p>
+                                            <p class="text-sm font-medium text-gray-800 mt-1">{{ $selectedCase->date_of_incident?->format('F d, Y') ?? 'N/A' }}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -747,11 +752,16 @@
                     <div class="flex items-center justify-between px-8 py-4 border-t border-gray-200 bg-gray-50/50 rounded-b-2xl">
                         <p class="text-xs text-gray-400">Confidential &mdash; CSU Office of Student Development and Welfare</p>
                         <div class="flex items-center gap-2">
-                            @if($selectedCase->status === 'Pending Review')
+                            @if($selectedCase->canSendNotice())
+                                @php
+                                    $nextNotice = ($selectedCase->notice_count ?? 0) + 1;
+                                    $ordinal = $nextNotice === 1 ? '1st' : ($nextNotice === 2 ? '2nd' : '3rd');
+                                @endphp
                                 <button wire:click="closeCase" x-on:click.defer="$nextTick(() => $wire.openSendNoticeModal({{ $selectedCase->id }}))" class="px-4 py-2 text-sm font-semibold text-white bg-inferno rounded-lg hover:bg-black-cherry transition-colors">
-                                    Send Notice to Student
+                                    Send {{ $ordinal }} Notice to Student
                                 </button>
-                            @elseif($selectedCase->status === 'Notice Sent')
+                            @endif
+                            @if($selectedCase->status === 'Notice Sent')
                                 @if($selectedCase->student_answer_submitted_date || $selectedCase->isAnswerOverdue())
                                     <button wire:click="closeCase" x-on:click.defer="$nextTick(() => $wire.advanceToInvestigation({{ $selectedCase->id }}))" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
                                         Move to Investigation
@@ -1302,7 +1312,11 @@
             <div class="relative bg-white rounded-xl shadow-xl max-w-lg w-full z-10">
                 <div class="p-6 border-b flex items-start justify-between">
                     <div>
-                        <h3 class="text-lg font-semibold text-mahogany">Send Formal Notice to Student</h3>
+                        @php
+                            $nextNotice = ($selectedCase->notice_count ?? 0) + 1;
+                            $ordinal = $nextNotice === 1 ? '1st' : ($nextNotice === 2 ? '2nd' : '3rd');
+                        @endphp
+                        <h3 class="text-lg font-semibold text-mahogany">Send {{ $ordinal }} Formal Notice to Student</h3>
                         <p class="text-sm text-gray-500 mt-0.5 font-mono">{{ $selectedCase->case_tracking_number }}</p>
                     </div>
                     <button wire:click="$set('showSendNoticeModal', false)" class="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
@@ -1349,7 +1363,13 @@
                             <span wire:loading.remove wire:target="sendNoticeToStudent">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                             </span>
-                            <span wire:loading.remove wire:target="sendNoticeToStudent">Send Notice</span>
+                            <span wire:loading wire:target="sendNoticeToStudent">
+                                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </span>
+                            <span wire:loading.remove wire:target="sendNoticeToStudent">Send {{ $ordinal }} Notice</span>
                             <span wire:loading wire:target="sendNoticeToStudent">Sending...</span>
                         </button>
                     </div>

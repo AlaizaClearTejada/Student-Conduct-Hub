@@ -80,42 +80,37 @@ class StudentRegistrationTest extends TestCase
             ->assertSee('No students found matching');
     }
 
-    public function test_roster_view_modal_loads_correct_student(): void
+    public function test_roster_view_action_redirects_to_student_profile(): void
     {
         Livewire::actingAs($this->staff)
             ->test(StudentRoster::class)
             ->call('viewStudent', $this->student->id)
-            ->assertSet('showViewModal', true)
-            ->assertSet('viewingStudent.student_id', $this->student->student_id);
+            ->assertRedirect(route('staff.students.show', $this->student->id));
     }
 
-    public function test_roster_close_view_modal_clears_state(): void
+    public function test_roster_create_action_redirects_to_create_page(): void
     {
         Livewire::actingAs($this->staff)
             ->test(StudentRoster::class)
-            ->call('viewStudent', $this->student->id)
-            ->call('closeViewModal')
-            ->assertSet('showViewModal', false)
-            ->assertSet('viewingStudent', null);
+            ->call('openCreateForm')
+            ->assertRedirect(route('staff.students.create'));
     }
 
     // ─── StudentForm: Create ────────────────────────────────────────────────
 
-    public function test_form_opens_in_create_mode_via_event(): void
+    public function test_form_mounts_in_create_mode(): void
     {
         Livewire::actingAs($this->staff)
-            ->test(StudentForm::class)
-            ->dispatch('open-student-form', mode: 'create')
-            ->assertSet('showModal', true)
+            ->test(StudentForm::class, ['mode' => 'create'])
+            ->assertSet('mode', 'create')
             ->assertSet('isEditing', false);
     }
 
-    public function test_form_opens_in_edit_mode_and_prepopulates_fields(): void
+    public function test_form_mounts_in_edit_mode_and_prepopulates_fields(): void
     {
         Livewire::actingAs($this->staff)
-            ->test(StudentForm::class)
-            ->dispatch('open-student-form', mode: 'edit', userId: $this->student->id)
-            ->assertSet('showModal', true)
+            ->test(StudentForm::class, ['mode' => 'edit', 'studentId' => $this->student->id])
+            ->assertSet('mode', 'edit')
             ->assertSet('isEditing', true)
             ->assertSet('studentIdInput', $this->student->student_id)
             ->assertSet('email', $this->student->email);
@@ -133,28 +128,27 @@ class StudentRegistrationTest extends TestCase
     {
         Livewire::actingAs($this->staff)
             ->test(StudentForm::class)
-            ->set('studentIdInput', '2099-9999')
+            ->set('studentIdInput', '99-99999')
             ->assertSet('studentIdTaken', false);
     }
 
     public function test_creating_valid_student_persists_record(): void
     {
         Livewire::actingAs($this->staff)
-            ->test(StudentForm::class)
-            ->dispatch('open-student-form', mode: 'create')
-            ->set('studentIdInput', '2025-0001')
+            ->test(StudentForm::class, ['mode' => 'create'])
+            ->set('studentIdInput', '25-00001')
             ->set('firstName', 'Maria')
             ->set('lastName', 'Santos')
             ->set('email', 'maria.santos@csu.edu.ph')
             ->set('college', 'COLLEGE OF INFORMATION AND COMPUTING SCIENCES')
+            ->set('program', 'BSIT')
             ->set('yearLevel', '1st Year')
             ->set('section', 'A')
             ->call('save')
-            ->assertSet('showModal', false)
-            ->assertDispatched('student-saved');
+            ->assertRedirect(route('staff.students'));
 
         $this->assertDatabaseHas('users', [
-            'student_id' => '2025-0001',
+            'student_id' => '25-00001',
             'first_name' => 'Maria',
             'last_name' => 'Santos',
             'name' => 'Maria Santos',
@@ -164,15 +158,14 @@ class StudentRegistrationTest extends TestCase
             'section' => 'A',
         ]);
 
-        $newUser = User::where('student_id', '2025-0001')->first();
+        $newUser = User::where('student_id', '25-00001')->first();
         $this->assertTrue($newUser->hasRole('student'));
     }
 
     public function test_creating_student_with_duplicate_id_fails_validation(): void
     {
         Livewire::actingAs($this->staff)
-            ->test(StudentForm::class)
-            ->dispatch('open-student-form', mode: 'create')
+            ->test(StudentForm::class, ['mode' => 'create'])
             ->set('studentIdInput', $this->student->student_id)
             ->set('firstName', 'Jose')
             ->set('lastName', 'Reyes')
@@ -187,9 +180,8 @@ class StudentRegistrationTest extends TestCase
     public function test_creating_student_with_invalid_college_fails_validation(): void
     {
         Livewire::actingAs($this->staff)
-            ->test(StudentForm::class)
-            ->dispatch('open-student-form', mode: 'create')
-            ->set('studentIdInput', '2025-0099')
+            ->test(StudentForm::class, ['mode' => 'create'])
+            ->set('studentIdInput', '25-00099')
             ->set('firstName', 'Ana')
             ->set('lastName', 'Lopez')
             ->set('email', 'ana.lopez@csu.edu.ph')
@@ -203,8 +195,7 @@ class StudentRegistrationTest extends TestCase
     public function test_missing_required_fields_fail_validation(): void
     {
         Livewire::actingAs($this->staff)
-            ->test(StudentForm::class)
-            ->dispatch('open-student-form', mode: 'create')
+            ->test(StudentForm::class, ['mode' => 'create'])
             ->call('save')
             ->assertHasErrors(['studentIdInput', 'firstName', 'lastName', 'email', 'college', 'yearLevel', 'section']);
     }
@@ -214,14 +205,12 @@ class StudentRegistrationTest extends TestCase
     public function test_editing_student_updates_existing_record(): void
     {
         Livewire::actingAs($this->staff)
-            ->test(StudentForm::class)
-            ->dispatch('open-student-form', mode: 'edit', userId: $this->student->id)
+            ->test(StudentForm::class, ['mode' => 'edit', 'studentId' => $this->student->id])
             ->set('firstName', 'Updated')
             ->set('lastName', 'Name')
             ->set('yearLevel', '3rd Year')
             ->call('save')
-            ->assertSet('showModal', false)
-            ->assertDispatched('student-saved');
+            ->assertRedirect(route('staff.students'));
 
         $this->student->refresh();
         $this->assertEquals('Updated', $this->student->first_name);

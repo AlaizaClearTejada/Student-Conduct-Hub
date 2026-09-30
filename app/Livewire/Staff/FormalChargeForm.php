@@ -6,6 +6,7 @@ use App\Events\IncidentReported;
 use App\Models\IncidentReport;
 use App\Models\OffenseRule;
 use App\Models\User;
+use App\Services\TribunalCaseRouter;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
@@ -34,6 +35,8 @@ class FormalChargeForm extends Component
     public string $email = '';
 
     public bool $studentVerified = false;
+
+    public int $offenseCount = 1;
 
     // Incident details
     public ?int $offenseId = null;
@@ -64,7 +67,7 @@ class FormalChargeForm extends Component
      */
     public function mount(): void
     {
-        $this->majorOffenses = OffenseRule::where('gravity', 'major')
+        $this->majorOffenses = OffenseRule::requiringTribunalReview()
             ->where('is_active', true)
             ->orderBy('code')
             ->get();
@@ -98,6 +101,11 @@ class FormalChargeForm extends Component
             $this->yearLevel = $student->year_level ?? '';
             $this->section = $student->section ?? '';
             $this->email = $student->email;
+
+            // Calculate offense count (previous reports + 1)
+            $previousCount = IncidentReport::where('student_id', $student->id)->count();
+            $this->offenseCount = $previousCount + 1;
+
             $this->studentVerified = true;
         }
     }
@@ -147,6 +155,10 @@ class FormalChargeForm extends Component
             'evidence_path' => $evidencePath,
             'status' => 'Submitted',
         ]);
+
+        if (OffenseRule::requiringTribunalReview()->whereKey($report->offense_id)->exists()) {
+            app(TribunalCaseRouter::class)->routeIncidentReport($report);
+        }
 
         Event::dispatch(new IncidentReported($report));
 

@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OffenseRule extends Model
 {
+    public const TRIBUNAL_SEVERITY_LEVELS = ['Major', 'Severe'];
+
     /** @use HasFactory<\Database\Factories\OffenseRuleFactory> */
     use HasFactory;
 
@@ -43,6 +46,16 @@ class OffenseRule extends Model
             'is_active' => 'boolean',
             'requires_tribunal' => 'boolean',
         ];
+    }
+
+    public function requiresTribunalReview(): bool
+    {
+        return in_array($this->severity_level, self::TRIBUNAL_SEVERITY_LEVELS, true);
+    }
+
+    public function scopeRequiringTribunalReview(Builder $query): Builder
+    {
+        return $query->whereIn('severity_level', self::TRIBUNAL_SEVERITY_LEVELS);
     }
 
     /**

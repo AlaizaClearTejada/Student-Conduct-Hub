@@ -111,6 +111,55 @@
                     </div>
                 </div>
 
+                @if($report->recommended_violation)
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center">
+                            <svg class="w-4 h-4 mr-1 text-[#a50104]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            Decision Support
+                        </h3>
+                        <div class="bg-[#fdf2f2] rounded-lg p-6 border border-[#f3dada]">
+                            <div class="mb-4">
+                                <p class="text-xs text-gray-500 font-bold uppercase mb-1">Detected Violation:</p>
+                                <p class="text-lg font-bold text-[#250001]">{{ $report->recommended_violation }}</p>
+                                <p class="text-sm font-semibold text-[#a50104] mt-1">Severity: {{ strtoupper($report->severity) }}</p>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <p class="text-xs text-gray-500 font-bold uppercase mb-1">Matched Terms:</p>
+                                <div class="flex flex-wrap gap-2">
+                                    @if(is_array($report->matched_keywords) || is_object($report->matched_keywords))
+                                        @foreach($report->matched_keywords as $keyword)
+                                            <span class="px-2 py-1 bg-white border border-[#f3dada] text-[#a50104] rounded text-xs font-semibold">
+                                                {{ $keyword }}
+                                            </span>
+                                        @endforeach
+                                    @else
+                                        <span class="text-sm text-gray-500 italic">None logged</span>
+                                    @endif
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <p class="text-xs text-gray-500 font-bold uppercase mb-1">AI/System Recommendation:</p>
+                                <p class="text-md font-bold text-[#590004] bg-white px-3 py-2 border border-[#f3dada] inline-block rounded">
+                                    {{ $report->recommended_sanction }}
+                                </p>
+                            </div>
+
+                            <div class="flex items-start gap-2 mt-4 pt-4 border-t border-[#f3dada]">
+                                <svg class="w-5 h-5 text-yellow-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                                <p class="text-xs text-yellow-800 font-semibold mt-0.5">
+                                    Recommendation only. Final decision must be made by the Tribunal.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
             </div>
 
             <div class="px-8 py-4 border-t border-gray-100 bg-yellow-50 flex items-start gap-3">

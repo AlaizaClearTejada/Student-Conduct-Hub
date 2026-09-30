@@ -2,6 +2,10 @@
 
 return [
 
+    'python' => [
+        'binary' => env('PYTHON_BINARY', 'python'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

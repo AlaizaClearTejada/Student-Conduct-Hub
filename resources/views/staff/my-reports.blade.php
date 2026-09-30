@@ -9,9 +9,7 @@
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="px-8 py-5 border-b border-gray-100 bg-[#f3f3f3] flex justify-between items-center">
                 <h3 class="text-lg font-bold text-[#250001]">All Incident Reports</h3>
-                <a href="{{ route('staff.report.create') }}" class="px-4 py-2 bg-[#a50104] text-white rounded-lg font-medium hover:bg-[#590004] transition-colors shadow-sm">
-                    + New Report
-                </a>
+
             </div>
 
             @if($reports->count() > 0)
@@ -86,12 +84,7 @@
                     </svg>
                     <p class="text-gray-500 font-medium">No incident reports submitted yet</p>
                     <p class="text-sm text-gray-400 mt-1 mb-4">Submit your first report to get started</p>
-                    <a href="{{ route('staff.report.create') }}" class="inline-flex items-center px-6 py-3 bg-[#a50104] text-white rounded-lg font-medium hover:bg-[#590004] transition-colors shadow-sm">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                        Create Report
-                    </a>
+
                 </div>
             @endif
         </div>

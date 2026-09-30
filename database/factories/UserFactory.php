@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Helpers\StudentProgramCatalog;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -47,30 +48,52 @@ class UserFactory extends Factory
      */
     public function student(): static
     {
-        static $counter = 1000;
+        static $counter = 1;
 
         return $this->state(function (array $attributes) use (&$counter) {
             $firstName = fake()->firstName();
             $lastName = fake()->lastName();
+            $college = fake()->randomElement(StudentProgramCatalog::colleges());
 
             return [
                 'first_name' => $firstName,
                 'last_name' => $lastName,
                 'name' => $firstName.' '.$lastName,
-                'student_id' => '2024-'.str_pad((string) $counter++, 4, '0', STR_PAD_LEFT),
-                'program' => fake()->randomElement(['BSIT', 'BSCS', 'BSCE', 'BSBA', 'BSCRIM', 'BSHM', 'BSED']),
-                'college' => fake()->randomElement([
-                    'COLLEGE OF BUSINESS ENTREPRENEURSHIP AND ACCOUNTANCY',
-                    'COLLEGE OF CRIMINAL JUSTICE EDUCATION',
-                    'COLLEGE OF FISHERIES AND AQUATIC SCIENCES',
-                    'COLLEGE OF HOSPITALITY MANAGEMENT',
-                    'COLLEGE OF INDUSTRIAL TECHNOLOGY',
-                    'COLLEGE OF INFORMATION AND COMPUTING SCIENCES',
-                    'COLLEGE OF TEACHER EDUCATION',
-                ]),
+                'student_id' => '24-'.str_pad((string) $counter++, 5, '0', STR_PAD_LEFT),
+                'program' => fake()->randomElement(StudentProgramCatalog::programsForCollege($college)),
+                'college' => $college,
+                'role_type' => 'student',
                 'year_level' => fake()->randomElement(['1st Year', '2nd Year', '3rd Year', '4th Year']),
                 'section' => fake()->randomElement(['A', 'B', 'C', '1A', '1B', '2A', '3B']),
             ];
         });
+    }
+
+    /**
+     * Create a staff user without student-specific academic fields.
+     */
+    public function staff(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'program' => null,
+            'college' => null,
+            'year_level' => null,
+            'section' => null,
+            'role_type' => 'osdw_staff',
+        ]);
+    }
+
+    /**
+     * Create an administrator without student-specific academic fields.
+     */
+    public function administrator(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'program' => null,
+            'college' => null,
+            'year_level' => null,
+            'section' => null,
+            'role_type' => 'admin',
+        ]);
     }
 }

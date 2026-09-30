@@ -9,8 +9,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Expand the status enum to include intermediate workflow statuses
-        DB::statement("ALTER TABLE violation_records MODIFY COLUMN status ENUM('Pending Review','Notice Sent','Under Investigation','Sanction Active','Resolved','Appealed') NOT NULL DEFAULT 'Pending Review'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE violation_records MODIFY COLUMN status ENUM('Pending Review','Notice Sent','Under Investigation','Sanction Active','Resolved','Appealed') NOT NULL DEFAULT 'Pending Review'");
+        }
 
         Schema::table('violation_records', function (Blueprint $table) {
             $table->datetime('notice_sent_at')->nullable()->after('action_taken');
@@ -23,9 +24,10 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Only revert enum if no records use the new statuses
-        DB::statement("UPDATE violation_records SET status = 'Pending Review' WHERE status IN ('Notice Sent', 'Under Investigation')");
-        DB::statement("ALTER TABLE violation_records MODIFY COLUMN status ENUM('Pending Review','Sanction Active','Resolved','Appealed') NOT NULL DEFAULT 'Pending Review'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("UPDATE violation_records SET status = 'Pending Review' WHERE status IN ('Notice Sent', 'Under Investigation')");
+            DB::statement("ALTER TABLE violation_records MODIFY COLUMN status ENUM('Pending Review','Sanction Active','Resolved','Appealed') NOT NULL DEFAULT 'Pending Review'");
+        }
 
         Schema::table('violation_records', function (Blueprint $table) {
             $table->dropForeign(['notice_sent_by']);

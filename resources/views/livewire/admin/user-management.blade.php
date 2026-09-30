@@ -128,6 +128,13 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right">
                                 <div class="flex items-center justify-end gap-2">
+                                    <button wire:click="openEditModal({{ $user->id }})"
+                                            class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.5-7.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 7.5-7.5z"/>
+                                        </svg>
+                                        Edit
+                                    </button>
                                     @if($user->suspended_at)
                                         <button wire:click="activateUser({{ $user->id }})" wire:confirm="Are you sure you want to activate this account?"
                                                 class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
@@ -184,7 +191,7 @@
     </div>
 
     <!-- Create User Modal -->
-    @if($showCreateModal)
+    @if($showCreateModal || $showEditModal)
         <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Background overlay -->
@@ -193,7 +200,7 @@
                 <!-- Modal panel -->
                 <div class="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-xl sm:align-middle">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-mahogany">Create New User</h3>
+                        <h3 class="text-lg font-semibold text-mahogany">{{ $showEditModal ? 'Edit User' : 'Create New User' }}</h3>
                         <button wire:click="closeCreateModal" class="text-gray-400 hover:text-gray-600">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -201,7 +208,7 @@
                         </button>
                     </div>
 
-                    <form wire:submit="createUser" class="space-y-4">
+                    <form wire:submit="{{ $showEditModal ? 'updateUser' : 'createUser' }}" class="space-y-4">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
@@ -223,7 +230,7 @@
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                            <input type="password" wire:model="password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-inferno focus:border-inferno @error('password') border-red-500 @enderror">
+                            <input type="password" wire:model="password" placeholder="{{ $showEditModal ? 'Leave blank to keep current password' : '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-inferno focus:border-inferno @error('password') border-red-500 @enderror">
                             @error('password') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
 
@@ -241,7 +248,7 @@
                                 Cancel
                             </button>
                             <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-inferno rounded-lg hover:bg-black-cherry transition-colors">
-                                Create User
+                                {{ $showEditModal ? 'Save Changes' : 'Create User' }}
                             </button>
                         </div>
                     </form>

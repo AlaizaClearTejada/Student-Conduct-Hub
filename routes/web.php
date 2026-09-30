@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\StudentChatController;
 use App\Http\Controllers\StudentConductController;
+use App\Imports\StudentImport;
 use App\Models\CaseEvidence;
 use App\Models\IncidentReport;
 use Illuminate\Support\Facades\Auth;
@@ -74,12 +75,7 @@ Route::middleware(['auth', 'role:staff|administrator'])->prefix('staff')->name('
     Route::get('/students', fn () => view('staff.students.index'))->name('students');
     Route::get('/students/create', fn () => view('staff.students.create'))->name('students.create');
     Route::get('/students/import-template', function () {
-        $columns = ['student_id', 'first_name', 'last_name', 'email', 'program', 'college', 'year_level', 'section'];
-        $example = ['2024-0001', 'Juan', 'dela Cruz', 'jdelacruz@csu.edu.ph', 'BS Information Technology', 'COLLEGE OF INFORMATION AND COMPUTING SCIENCES', '1st Year', 'A'];
-
-        $csv = implode(',', $columns)."\n".implode(',', $example)."\n";
-
-        return response($csv, 200, [
+        return response(StudentImport::templateCsv(), 200, [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => 'attachment; filename="sia-masterlist-template.csv"',
         ]);
@@ -118,6 +114,15 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
 
         return Storage::disk('local')->download($report->evidence_path, basename($report->evidence_path));
     })->name('report-evidence.download');
+});
+
+// Tribunal Module Routes - Strictly isolated
+Route::middleware(['auth', 'tribunal'])->prefix('dashboard/tribunal')->name('tribunal.')->group(function () {
+    Route::get('/cases', [\App\Http\Controllers\TribunalController::class, 'index'])->name('cases.index');
+    Route::post('/documents', [\App\Http\Controllers\TribunalDocumentController::class, 'upload'])->name('documents.upload');
+    Route::get('/cases/{case}', [\App\Http\Controllers\TribunalController::class, 'show'])->name('cases.show');
+    Route::get('/cases/{case}/document', [\App\Http\Controllers\TribunalController::class, 'document'])->name('cases.document');
+    Route::patch('/cases/{case}/status', [\App\Http\Controllers\TribunalController::class, 'updateStatus'])->name('cases.updateStatus');
 });
 
 require __DIR__.'/auth.php';

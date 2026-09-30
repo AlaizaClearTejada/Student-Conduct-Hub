@@ -56,9 +56,6 @@
                                     {{ __('welcome.nav.dashboard') }}
                                 </a>
                             @else
-                                <a href="#features" class="hidden md:block px-4 py-2 text-sm font-medium text-mahogany hover:text-inferno transition-colors">
-                                    {{ __('welcome.nav.features') }}
-                                </a>
                                 <a href="#faq" class="hidden md:block px-4 py-2 text-sm font-medium text-mahogany hover:text-inferno transition-colors">
                                     {{ __('welcome.nav.faq') }}
                                 </a>
@@ -97,40 +94,6 @@
                         {{ __('welcome.hero.tagline') }}
                     </p>
 
-                    <!-- System Impact Stats -->
-                    <div class="max-w-4xl mx-auto mb-8" data-aos="fade-up" data-aos-delay="300">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="bg-white rounded-xl p-6 shadow-lg border-2 border-platinum hover:border-inferno transition-all">
-                                <div class="flex items-center justify-center gap-3 mb-2">
-                                    <svg class="w-6 h-6 text-inferno" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                    </svg>
-                                    <span class="text-3xl font-bold text-black-cherry">{{ __('welcome.hero.stat_resolution') }}</span>
-                                </div>
-                                <p class="text-sm text-gray-700 text-center font-medium">{{ __('welcome.hero.label_resolution') }}</p>
-                            </div>
-                            <div class="bg-white rounded-xl p-6 shadow-lg border-2 border-platinum hover:border-inferno transition-all">
-                                <div class="flex items-center justify-center gap-3 mb-2">
-                                    <svg class="w-6 h-6 text-inferno" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                    </svg>
-                                    <span class="text-3xl font-bold text-black-cherry">{{ __('welcome.hero.stat_consistency') }}</span>
-                                </div>
-                                <p class="text-sm text-gray-700 text-center font-medium">{{ __('welcome.hero.label_consistency') }}</p>
-                            </div>
-                            <div class="bg-white rounded-xl p-6 shadow-lg border-2 border-platinum hover:border-inferno transition-all">
-                                <div class="flex items-center justify-center gap-3 mb-2">
-                                    <svg class="w-6 h-6 text-inferno" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
-                                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
-                                    </svg>
-                                    <span class="text-3xl font-bold text-black-cherry">{{ __('welcome.hero.stat_transparency') }}</span>
-                                </div>
-                                <p class="text-sm text-gray-700 text-center font-medium">{{ __('welcome.hero.label_transparency') }}</p>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Security Badges -->
                     <div class="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-700">
                         <div class="flex items-center gap-2">
@@ -152,85 +115,6 @@
                             </svg>
                             <span class="font-medium">{{ __('welcome.hero.badge_privacy') }}</span>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Features Section -->
-        <section id="features" class="py-16 px-4 sm:px-6 lg:px-8 bg-white/70">
-            <div class="max-w-7xl mx-auto">
-                <div class="text-center mb-12" data-aos="fade-up">
-                    <h2 class="text-4xl font-bold text-black-cherry mb-4">{{ __('welcome.features.title') }}</h2>
-                    <p class="text-lg text-gray-700">{{ __('welcome.features.subtitle') }}</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <!-- Automation Feature -->
-                    <div class="bg-white rounded-xl p-6 shadow-md border-2 border-platinum hover:border-inferno transition-all" data-aos="fade-up" data-aos-delay="100">
-                        <div class="w-12 h-12 bg-mahogany text-platinum rounded-lg flex items-center justify-center mb-4">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-black-cherry mb-2">{{ __('welcome.features.automation.title') }}</h3>
-                        <p class="text-gray-700">{{ __('welcome.features.automation.desc') }}</p>
-                    </div>
-
-                    <!-- Transparency Feature -->
-                    <div class="bg-white rounded-xl p-6 shadow-md border-2 border-platinum hover:border-inferno transition-all" data-aos="fade-up" data-aos-delay="200">
-                        <div class="w-12 h-12 bg-mahogany text-platinum rounded-lg flex items-center justify-center mb-4">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-black-cherry mb-2">{{ __('welcome.features.transparency.title') }}</h3>
-                        <p class="text-gray-700">{{ __('welcome.features.transparency.desc') }}</p>
-                    </div>
-
-                    <!-- Analytics Feature -->
-                    <div class="bg-white rounded-xl p-6 shadow-md border-2 border-platinum hover:border-inferno transition-all" data-aos="fade-up" data-aos-delay="300">
-                        <div class="w-12 h-12 bg-mahogany text-platinum rounded-lg flex items-center justify-center mb-4">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-black-cherry mb-2">{{ __('welcome.features.analytics.title') }}</h3>
-                        <p class="text-gray-700">{{ __('welcome.features.analytics.desc') }}</p>
-                    </div>
-
-                    <!-- Security Feature -->
-                    <div class="bg-white rounded-xl p-6 shadow-md border-2 border-platinum hover:border-inferno transition-all" data-aos="fade-up" data-aos-delay="100">
-                        <div class="w-12 h-12 bg-mahogany text-platinum rounded-lg flex items-center justify-center mb-4">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-black-cherry mb-2">{{ __('welcome.features.security.title') }}</h3>
-                        <p class="text-gray-700">{{ __('welcome.features.security.desc') }}</p>
-                    </div>
-
-                    <!-- Notifications Feature -->
-                    <div class="bg-white rounded-xl p-6 shadow-md border-2 border-platinum hover:border-inferno transition-all" data-aos="fade-up" data-aos-delay="200">
-                        <div class="w-12 h-12 bg-mahogany text-platinum rounded-lg flex items-center justify-center mb-4">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-black-cherry mb-2">{{ __('welcome.features.notifications.title') }}</h3>
-                        <p class="text-gray-700">{{ __('welcome.features.notifications.desc') }}</p>
-                    </div>
-
-                    <!-- Audit Trail Feature -->
-                    <div class="bg-white rounded-xl p-6 shadow-md border-2 border-platinum hover:border-inferno transition-all" data-aos="fade-up" data-aos-delay="300">
-                        <div class="w-12 h-12 bg-mahogany text-platinum rounded-lg flex items-center justify-center mb-4">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-black-cherry mb-2">{{ __('welcome.features.audit.title') }}</h3>
-                        <p class="text-gray-700">{{ __('welcome.features.audit.desc') }}</p>
                     </div>
                 </div>
             </div>
@@ -337,17 +221,17 @@
                 
                 <div class="space-y-4">
                     @foreach(__('welcome.faq.items') as $i => $item)
-                    <div class="bg-white rounded-xl shadow-md border-2 border-platinum overflow-hidden hover:border-inferno transition-all" data-aos="fade-up" data-aos-delay="{{ 100 + $i * 50 }}">
-                        <button onclick="this.parentElement.querySelector('.faq-answer').classList.toggle('hidden'); this.querySelector('svg').classList.toggle('rotate-180'); this.querySelector('span').classList.toggle('text-inferno')" class="w-full px-6 py-5 text-left flex justify-between items-center hover:bg-platinum/30 transition-colors group">
-                            <span class="font-semibold text-mahogany pr-4 transition-colors">{{ $item['q'] }}</span>
-                            <svg class="w-5 h-5 text-inferno flex-shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <details class="group bg-white rounded-xl shadow-md border-2 border-platinum overflow-hidden open:border-inferno transition-all" data-aos="fade-up" data-aos-delay="{{ 100 + $i * 50 }}">
+                        <summary class="px-6 py-5 text-left flex justify-between items-center cursor-pointer hover:bg-platinum/30 transition-colors list-none">
+                            <span class="font-semibold text-mahogany pr-4 transition-colors group-open:text-inferno">{{ $item['q'] }}</span>
+                            <svg class="w-5 h-5 text-inferno flex-shrink-0 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
-                        </button>
-                        <div class="faq-answer hidden px-6 pb-5 bg-platinum">
+                        </summary>
+                        <div class="px-6 pb-5 bg-platinum">
                             <p class="text-gray-700 text-sm leading-relaxed">{{ $item['a'] }}</p>
                         </div>
-                    </div>
+                    </details>
                     @endforeach
                 </div>
             </div>
@@ -385,19 +269,29 @@
         </section>
 
         <!-- Session Security Notice -->
-        <section class="py-8 px-4 sm:px-6 lg:px-8 bg-yellow-50 border-t border-b border-yellow-200" data-aos="fade-up">
-            <div class="max-w-7xl mx-auto">
+        <div id="security-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/50 px-4" role="dialog" aria-modal="true" aria-labelledby="security-modal-title">
+            <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
                 <div class="flex items-start gap-4">
-                    <svg class="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <div>
-                        <p class="font-semibold text-yellow-900">{{ __('welcome.security_notice.title') }}</p>
-                        <p class="text-sm text-yellow-800 mt-1">{{ __('welcome.security_notice.desc') }}</p>
+                    <div class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-yellow-100 text-yellow-700">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
                     </div>
+                    <div class="flex-1">
+                        <h2 id="security-modal-title" class="font-semibold text-yellow-900">{{ __('welcome.security_notice.title') }}</h2>
+                        <p class="mt-1 text-sm leading-relaxed text-yellow-800">{{ __('welcome.security_notice.desc') }}</p>
+                    </div>
+                    <button type="button" data-security-close class="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700" aria-label="{{ __('welcome.security_notice.dismiss') }}">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
+                <button type="button" data-security-close class="mt-6 w-full rounded-lg bg-inferno px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-black-cherry">
+                    {{ __('welcome.security_notice.dismiss') }}
+                </button>
             </div>
-        </section>
+        </div>
 
         <!-- Footer -->
         <footer class="bg-mahogany text-gray-300 py-12 px-4 sm:px-6 lg:px-8">
@@ -470,6 +364,35 @@
                 offset: 100,
                 once: true,
                 easing: 'ease-in-out'
+            });
+
+            const securityModal = document.getElementById('security-modal');
+            const closeSecurityModal = () => {
+                securityModal.classList.add('hidden');
+                securityModal.classList.remove('flex');
+                document.body.classList.remove('overflow-hidden');
+            };
+
+            document.querySelectorAll('[data-security-close]').forEach((button) => {
+                button.addEventListener('click', closeSecurityModal);
+            });
+
+            securityModal.addEventListener('click', (event) => {
+                if (event.target === securityModal) {
+                    closeSecurityModal();
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !securityModal.classList.contains('hidden')) {
+                    closeSecurityModal();
+                }
+            });
+
+            window.addEventListener('load', () => {
+                securityModal.classList.remove('hidden');
+                securityModal.classList.add('flex');
+                document.body.classList.add('overflow-hidden');
             });
         </script>
     </body>

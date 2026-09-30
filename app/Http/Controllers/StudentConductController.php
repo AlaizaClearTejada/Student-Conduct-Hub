@@ -37,8 +37,8 @@ class StudentConductController extends Controller
         $standing = $activeSanctionsCount > 0 ? 'Under Sanction' : 'Good Standing';
 
         // Additional dashboard metrics
-        $pendingReviewCount = $violationRecords->where('status', 'Pending Review')->count();
-        $resolvedCount = $violationRecords->where('status', 'Resolved')->count();
+        $pendingReviewCount = $violationRecords->whereIn('status', ['Pending Review', 'Pending', 'Notice Sent'])->count();
+        $resolvedCount = $violationRecords->whereIn('status', ['Resolved', 'Dismissed', 'Warning'])->count();
         $appealedCount = $violationRecords->where('status', 'Appealed')->count();
 
         return view('student.dashboard', compact(

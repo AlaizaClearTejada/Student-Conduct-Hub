@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\StudentProgramCatalog;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\StudentResource;
 use App\Models\User;
@@ -10,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class StudentController extends Controller
 {
@@ -42,8 +44,8 @@ class StudentController extends Controller
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
-            'program' => ['required', 'string', 'max:255'],
-            'college' => ['required', 'string', 'max:255'],
+            'program' => ['required', 'string', Rule::in(StudentProgramCatalog::programsForCollege($request->input('college')))],
+            'college' => ['required', 'string', Rule::in(StudentProgramCatalog::colleges())],
             'year_level' => ['sometimes', 'integer', 'min:1', 'max:6'],
             'section' => ['sometimes', 'string', 'max:50'],
         ]);
@@ -57,6 +59,7 @@ class StudentController extends Controller
             'student_id' => $validated['student_id'],
             'program' => $validated['program'],
             'college' => $validated['college'],
+            'role_type' => 'student',
             'year_level' => $validated['year_level'] ?? null,
             'section' => $validated['section'] ?? null,
         ]);
@@ -97,8 +100,8 @@ class StudentController extends Controller
             'first_name' => ['sometimes', 'string', 'max:255'],
             'last_name' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'email', 'unique:users,email,'.$student->id],
-            'program' => ['sometimes', 'string', 'max:255'],
-            'college' => ['sometimes', 'string', 'max:255'],
+            'program' => ['required_with:college', 'string', Rule::in(StudentProgramCatalog::programsForCollege($request->input('college', $student->college)))],
+            'college' => ['sometimes', 'string', Rule::in(StudentProgramCatalog::colleges())],
             'year_level' => ['sometimes', 'integer', 'min:1', 'max:6'],
             'section' => ['sometimes', 'string', 'max:50'],
         ]);

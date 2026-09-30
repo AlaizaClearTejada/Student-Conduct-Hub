@@ -2,14 +2,14 @@
 
 namespace Tests\Feature;
 
-use App\Exports\ByTypeReportExport;
 use App\Exports\CaseSummaryExport;
 use App\Exports\MonthlyReportExport;
 use App\Livewire\Admin\CaseManagement;
+use App\Models\IncidentReport;
 use App\Models\OffenseRule;
+use App\Models\TribunalCase;
 use App\Models\User;
 use App\Models\ViolationRecord;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Maatwebsite\Excel\Facades\Excel;
@@ -50,9 +50,13 @@ class ReportExportTest extends TestCase
 
     public function test_admin_can_access_case_management_page(): void
     {
-        $response = $this->actingAs($this->admin)->get(route('admin.cases'));
+        $response = $this->withSession(['mfa_verified' => true])
+            ->actingAs($this->admin)
+            ->get(route('admin.cases'));
 
-        $response->assertStatus(200);
+        $response
+            ->assertStatus(200)
+            ->assertSee('/livewire/livewire.js', false);
     }
 
     public function test_case_management_shows_report_tabs(): void
@@ -63,6 +67,64 @@ class ReportExportTest extends TestCase
             ->assertSee('Case Summary')
             ->assertSee('Monthly Report')
             ->assertSee('By Type');
+    }
+
+    public function test_accepting_a_major_report_links_its_violation_record_to_the_tribunal_case(): void
+    {
+        $majorOffense = OffenseRule::factory()->create([
+            'severity_level' => 'Major',
+            'gravity' => 'minor',
+        ]);
+        $report = IncidentReport::factory()->submitted()->create([
+            'reporter_id' => $this->staff->id,
+            'student_id' => $this->student->id,
+            'offense_id' => $majorOffense->id,
+        ]);
+
+        Livewire::actingAs($this->admin)
+            ->test(CaseManagement::class)
+            ->call('openAcceptModal', $report->id)
+            ->assertSet('acceptInvestigationType', 'Tribunal')
+            ->call('acceptReport');
+
+        $record = ViolationRecord::where('student_id', $this->student->id)
+            ->where('offense_id', $majorOffense->id)
+            ->firstOrFail();
+        $tribunalCase = TribunalCase::where('violation_record_id', $record->id)->firstOrFail();
+
+        $this->assertSame($record->case_tracking_number, $tribunalCase->case_number);
+        $this->assertSame($report->id, $tribunalCase->incident_report_id);
+        $this->assertSame('Tribunal', $record->investigation_type);
+    }
+
+    public function test_assigning_a_case_to_sdt_adds_it_to_the_tribunal_pipeline(): void
+    {
+        $majorOffense = OffenseRule::factory()->create([
+            'severity_level' => 'Major',
+            'gravity' => 'minor',
+            'requires_tribunal' => false,
+        ]);
+        $record = ViolationRecord::factory()->create([
+            'student_id' => $this->student->id,
+            'offense_id' => $majorOffense->id,
+            'reported_by' => $this->staff->id,
+        ]);
+
+        Livewire::actingAs($this->admin)
+            ->test(CaseManagement::class)
+            ->call('openAssignSDTModal', $record->id)
+            ->set('selectedSDTMembers', ['member-1', 'member-2', 'member-3', 'member-4', 'member-5'])
+            ->call('assignSDT');
+
+        $this->assertDatabaseHas('violation_records', [
+            'id' => $record->id,
+            'assigned_to_sdt' => true,
+            'investigation_type' => 'Tribunal',
+        ]);
+        $this->assertDatabaseHas('tribunal_cases', [
+            'violation_record_id' => $record->id,
+            'case_number' => $record->case_tracking_number,
+        ]);
     }
 
     public function test_case_summary_tab_shows_records_in_period(): void

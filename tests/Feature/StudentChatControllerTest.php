@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\OffenseRule;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Http;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -101,11 +100,13 @@ class StudentChatControllerTest extends TestCase
         $response->assertStatus(422)->assertJsonValidationErrors(['messages.0.role']);
     }
 
-    // ─── API Key Not Configured ─────────────────────────────────────────────
+    // ─── Brain Not Trained ─────────────────────────────────────────────
 
-    public function test_chat_returns_503_when_api_key_missing(): void
+    public function test_chat_returns_503_when_brain_not_trained(): void
     {
-        config(['services.anthropic.key' => '']);
+        $this->mock(\App\Services\ChatBrainService::class, function ($mock) {
+            $mock->shouldReceive('loadModel')->once()->andReturn(false);
+        });
 
         $response = $this->actingAs($this->student)->postJson(route('student.chat'), [
             'messages' => [['role' => 'user', 'content' => 'What is cheating?']],
@@ -113,22 +114,19 @@ class StudentChatControllerTest extends TestCase
             'studentName' => 'Juan Dela Cruz',
         ]);
 
-        $response->assertStatus(503)->assertJsonFragment(['error' => 'The AI assistant is not configured. Please contact the OSA.']);
+        $response->assertStatus(503)->assertJsonFragment(['error' => 'The AI assistant brain is not trained yet. Please run php artisan jam:train to train it.']);
     }
 
     // ─── Successful AI Response ─────────────────────────────────────────────
 
-    public function test_chat_returns_reply_from_anthropic(): void
+    public function test_chat_returns_reply_from_brain(): void
     {
-        config(['services.anthropic.key' => 'test-api-key']);
+        $offense = OffenseRule::first();
 
-        Http::fake([
-            'api.anthropic.com/*' => Http::response([
-                'content' => [['type' => 'text', 'text' => 'Cheating is penalized under our conduct rules.']],
-                'model' => 'claude-sonnet-4-20250514',
-                'stop_reason' => 'end_turn',
-            ], 200),
-        ]);
+        $this->mock(\App\Services\ChatBrainService::class, function ($mock) use ($offense) {
+            $mock->shouldReceive('loadModel')->once()->andReturn(true);
+            $mock->shouldReceive('predict')->once()->andReturn($offense->code);
+        });
 
         $response = $this->actingAs($this->student)->postJson(route('student.chat'), [
             'messages' => [['role' => 'user', 'content' => 'What is cheating?']],
@@ -136,47 +134,24 @@ class StudentChatControllerTest extends TestCase
             'studentName' => 'Juan Dela Cruz',
         ]);
 
-        $response->assertStatus(200)->assertJsonFragment(['reply' => 'Cheating is penalized under our conduct rules.']);
+        $response->assertStatus(200);
+        $this->assertStringContainsString($offense->code, $response->json('reply'));
+        $this->assertStringContainsString($offense->title, $response->json('reply'));
     }
 
-    public function test_chat_uses_correct_anthropic_headers(): void
+    public function test_chat_returns_fallback_if_no_prediction(): void
     {
-        config(['services.anthropic.key' => 'test-key-xyz']);
-
-        Http::fake([
-            'api.anthropic.com/*' => Http::response([
-                'content' => [['type' => 'text', 'text' => 'Response']],
-            ], 200),
-        ]);
-
-        $this->actingAs($this->student)->postJson(route('student.chat'), [
-            'messages' => [['role' => 'user', 'content' => 'Hello']],
-            'lang' => 'fil',
-            'studentName' => 'Maria Santos',
-        ]);
-
-        Http::assertSent(fn ($request) => $request->hasHeader('x-api-key', 'test-key-xyz') &&
-            $request->hasHeader('anthropic-version') &&
-            str_contains($request->url(), 'api.anthropic.com')
-        );
-    }
-
-    // ─── Failed Upstream Response ───────────────────────────────────────────
-
-    public function test_chat_returns_502_when_anthropic_fails(): void
-    {
-        config(['services.anthropic.key' => 'test-api-key']);
-
-        Http::fake([
-            'api.anthropic.com/*' => Http::response(['error' => 'Server error'], 500),
-        ]);
+        $this->mock(\App\Services\ChatBrainService::class, function ($mock) {
+            $mock->shouldReceive('loadModel')->once()->andReturn(true);
+            $mock->shouldReceive('predict')->once()->andReturn(null);
+        });
 
         $response = $this->actingAs($this->student)->postJson(route('student.chat'), [
-            'messages' => [['role' => 'user', 'content' => 'What is cheating?']],
+            'messages' => [['role' => 'user', 'content' => 'Some unknown gibberish']],
             'lang' => 'en',
-            'studentName' => 'Test Student',
+            'studentName' => 'Juan Dela Cruz',
         ]);
 
-        $response->assertStatus(502)->assertJsonFragment(['error' => 'The AI service is temporarily unavailable. Please try again shortly.']);
+        $response->assertStatus(200)->assertJsonFragment(['reply' => "I'm sorry, I didn't quite catch that. Could you provide a bit more detail about the offense you're asking about?"]);
     }
 }

@@ -149,7 +149,7 @@ class ReportIncident extends Component
 
         // Create incident report for OSDW inbox review
         $report = IncidentReport::create([
-            'tracking_number' => 'INC-' . date('Y') . '-' . strtoupper(Str::random(5)),
+            'tracking_number' => 'INC-'.date('Y').'-'.strtoupper(Str::random(5)),
             'reporter_id' => Auth::id(),
             'student_id' => $this->student_id,
             'offense_id' => $this->offense_id,

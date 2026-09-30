@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -17,7 +18,6 @@ class QuickLog extends Component
 {
     public bool $showModal = false;
 
-    #[Validate('required|exists:users,id')]
     public $studentId = '';
 
     #[Validate('required|exists:offense_rules,id')]
@@ -32,6 +32,10 @@ class QuickLog extends Component
     public $studentProgram = '';
 
     public $studentVerified = false;
+
+    public int $offenseCount = 1;
+
+    public string $offenseOrdinal = '1st';
 
     // Available minor offenses (only)
     public $minorOffenses = [];
@@ -80,10 +84,8 @@ class QuickLog extends Component
             return;
         }
 
-        // Find student by student_id field or primary key
-        $student = User::where('student_id', $this->studentId)
-            ->orWhere('id', $this->studentId)
-            ->role('student')
+        $student = User::role('student')
+            ->where('student_id', $this->studentId)
             ->first();
 
         if ($student) {
@@ -96,8 +98,27 @@ class QuickLog extends Component
 
             // Get program (you may need to adjust this based on your User model)
             $this->studentProgram = $student->program ?? 'Unknown Program';
+
+            // Calculate offense count (previous reports + 1)
+            $previousCount = IncidentReport::where('student_id', $student->id)->count();
+            $this->offenseCount = $previousCount + 1;
+            $this->offenseOrdinal = $this->formatOrdinal($this->offenseCount);
+
             $this->studentVerified = true;
         }
+    }
+
+    private function formatOrdinal(int $number): string
+    {
+        $suffix = match (true) {
+            $number % 100 >= 11 && $number % 100 <= 13 => 'th',
+            $number % 10 === 1 => 'st',
+            $number % 10 === 2 => 'nd',
+            $number % 10 === 3 => 'rd',
+            default => 'th',
+        };
+
+        return $number.$suffix;
     }
 
     /**
@@ -105,7 +126,19 @@ class QuickLog extends Component
      */
     public function submit(): void
     {
-        $this->validate();
+        $validated = $this->validate([
+            'studentId' => [
+                'required',
+                'string',
+                'regex:/^\d{2}-\d{5}$/',
+                Rule::exists('users', 'student_id')->where('role_type', 'student'),
+            ],
+            'offenseId' => ['required', 'exists:offense_rules,id'],
+            'description' => ['required', 'string', 'min:10'],
+        ], [
+            'studentId.regex' => 'Student ID must follow the format 00-00000.',
+            'studentId.exists' => 'The selected student ID is invalid.',
+        ]);
 
         if (! $this->studentVerified) {
             $this->addError('studentId', 'Please verify the student identity before submitting.');
@@ -113,14 +146,18 @@ class QuickLog extends Component
             return;
         }
 
+        $student = User::role('student')
+            ->where('student_id', $validated['studentId'])
+            ->firstOrFail();
+
         // Create the report
         $report = IncidentReport::create([
             'tracking_number' => 'INC-'.date('Y').'-'.strtoupper(Str::random(5)),
             'reporter_id' => Auth::id(),
-            'student_id' => $this->studentId,
-            'offense_id' => $this->offenseId,
+            'student_id' => $student->id,
+            'offense_id' => $validated['offenseId'],
             'report_type' => 'Quick Log',
-            'description' => $this->description,
+            'description' => $validated['description'],
             'evidence_path' => null, // Quick logs don't require evidence
             'status' => 'Submitted',
         ]);

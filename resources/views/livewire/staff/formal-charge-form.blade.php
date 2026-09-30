@@ -46,7 +46,12 @@
                             <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
-                            <span class="text-green-800 font-medium">Identity Verified: <strong>{{ $studentName }}</strong></span>
+                            <div class="flex-1">
+                                <span class="text-green-800 font-medium block">Identity Verified: <strong>{{ $studentName }}</strong></span>
+                                <span class="text-green-700 text-xs mt-0.5 block">
+                                    This will be recorded as the student's <strong>{{ \Illuminate\Support\Number::ordinal($offenseCount) }} offense</strong>.
+                                </span>
+                            </div>
                         </div>
                     @elseif (strlen($studentIdInput) > 0 && ! $studentVerified)
                         <div wire:loading.remove wire:target="updatedStudentIdInput" class="mt-2 flex items-center gap-2 text-sm bg-red-50 border border-red-200 rounded-lg p-3">
@@ -72,7 +77,8 @@
                     <select
                         wire:model="college"
                         id="college"
-                        class="w-full px-4 py-3 rounded-lg border @error('college') border-[#a50104] bg-red-50 @else border-gray-300 bg-white @enderror focus:ring-2 focus:ring-[#590004] focus:border-[#590004] transition-colors text-gray-900"
+                        class="w-full px-4 py-3 rounded-lg border @error('college') border-[#a50104] bg-red-50 @else border-gray-300 bg-white @enderror focus:ring-2 focus:ring-[#590004] focus:border-[#590004] transition-colors text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed"
+                        @if($studentVerified) disabled @endif
                     >
                         <option value="">Select College...</option>
                         @foreach ($colleges as $col)
@@ -92,7 +98,8 @@
                     <select
                         wire:model="yearLevel"
                         id="yearLevel"
-                        class="w-full px-4 py-3 rounded-lg border @error('yearLevel') border-[#a50104] bg-red-50 @else border-gray-300 bg-white @enderror focus:ring-2 focus:ring-[#590004] focus:border-[#590004] transition-colors text-gray-900"
+                        class="w-full px-4 py-3 rounded-lg border @error('yearLevel') border-[#a50104] bg-red-50 @else border-gray-300 bg-white @enderror focus:ring-2 focus:ring-[#590004] focus:border-[#590004] transition-colors text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed"
+                        @if($studentVerified) disabled @endif
                     >
                         <option value="">Select Year...</option>
                         <option value="1st Year">1st Year</option>
@@ -115,7 +122,8 @@
                         type="text"
                         id="section"
                         placeholder="e.g., A, B, or 1A"
-                        class="w-full px-4 py-3 rounded-lg border @error('section') border-[#a50104] bg-red-50 @else border-gray-300 bg-white @enderror focus:ring-2 focus:ring-[#590004] focus:border-[#590004] transition-colors text-gray-900"
+                        class="w-full px-4 py-3 rounded-lg border @error('section') border-[#a50104] bg-red-50 @else border-gray-300 bg-white @enderror focus:ring-2 focus:ring-[#590004] focus:border-[#590004] transition-colors text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed"
+                        @if($studentVerified) disabled @endif
                     >
                     @error('section')
                         <p class="mt-1 text-xs font-bold text-[#a50104]">{{ $message }}</p>
@@ -132,7 +140,8 @@
                         type="email"
                         id="email"
                         placeholder="student@csu.edu.ph"
-                        class="w-full px-4 py-3 rounded-lg border @error('email') border-[#a50104] bg-red-50 @else border-gray-300 bg-white @enderror focus:ring-2 focus:ring-[#590004] focus:border-[#590004] transition-colors text-gray-900"
+                        class="w-full px-4 py-3 rounded-lg border @error('email') border-[#a50104] bg-red-50 @else border-gray-300 bg-white @enderror focus:ring-2 focus:ring-[#590004] focus:border-[#590004] transition-colors text-gray-900 disabled:bg-gray-100 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed"
+                        @if($studentVerified) disabled @endif
                     >
                     <div class="flex items-start gap-2 mt-2">
                         <svg class="w-4 h-4 text-[#a50104] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -20,7 +20,7 @@ class StudentPortalSecurityTest extends TestCase
     public function test_student_can_only_view_own_records(): void
     {
         // Create roles
-        $studentRole = Role::create(['name' => 'student']);
+        $studentRole = Role::findOrCreate('student');
 
         // Create two students
         $student1 = User::factory()->create();
@@ -65,7 +65,7 @@ class StudentPortalSecurityTest extends TestCase
     public function test_student_cannot_access_other_student_record_via_url_manipulation(): void
     {
         // Create roles
-        $studentRole = Role::create(['name' => 'student']);
+        $studentRole = Role::findOrCreate('student');
 
         // Create two students
         $student1 = User::factory()->create();
@@ -111,15 +111,17 @@ class StudentPortalSecurityTest extends TestCase
     public function test_non_student_users_cannot_access_student_routes(): void
     {
         // Create roles
-        Role::create(['name' => 'student']);
-        $adminRole = Role::create(['name' => 'administrator']);
+        Role::findOrCreate('student');
+        $adminRole = Role::findOrCreate('administrator');
 
         // Create admin user (not a student)
         $admin = User::factory()->create();
         $admin->assignRole('administrator');
 
         // Try to access student dashboard as admin
-        $response = $this->actingAs($admin)->get(route('student.dashboard'));
+        $response = $this->withSession(['mfa_verified' => true])
+            ->actingAs($admin)
+            ->get(route('student.dashboard'));
 
         // Should be denied (Spatie Permission middleware blocks non-students)
         $response->assertStatus(403);
@@ -133,8 +135,8 @@ class StudentPortalSecurityTest extends TestCase
     public function test_staff_can_view_student_records_via_policy(): void
     {
         // Create roles
-        Role::create(['name' => 'student']);
-        $staffRole = Role::create(['name' => 'staff']);
+        Role::findOrCreate('student');
+        $staffRole = Role::findOrCreate('staff');
 
         // Create student and staff
         $student = User::factory()->create();
@@ -163,7 +165,7 @@ class StudentPortalSecurityTest extends TestCase
     public function test_dashboard_uses_eager_loading_to_prevent_n_plus_one_queries(): void
     {
         // Create roles
-        $studentRole = Role::create(['name' => 'student']);
+        $studentRole = Role::findOrCreate('student');
 
         // Create student
         $student = User::factory()->create();
@@ -208,7 +210,7 @@ class StudentPortalSecurityTest extends TestCase
     public function test_students_cannot_create_violation_records(): void
     {
         // Create roles
-        $studentRole = Role::create(['name' => 'student']);
+        $studentRole = Role::findOrCreate('student');
 
         // Create student
         $student = User::factory()->create();
@@ -229,7 +231,7 @@ class StudentPortalSecurityTest extends TestCase
     public function test_students_cannot_update_violation_records(): void
     {
         // Create roles
-        $studentRole = Role::create(['name' => 'student']);
+        $studentRole = Role::findOrCreate('student');
 
         // Create student
         $student = User::factory()->create();
@@ -258,7 +260,7 @@ class StudentPortalSecurityTest extends TestCase
     public function test_students_cannot_delete_violation_records(): void
     {
         // Create roles
-        $studentRole = Role::create(['name' => 'student']);
+        $studentRole = Role::findOrCreate('student');
 
         // Create student
         $student = User::factory()->create();
@@ -287,7 +289,7 @@ class StudentPortalSecurityTest extends TestCase
     public function test_dashboard_correctly_calculates_conduct_standing(): void
     {
         // Create roles
-        $studentRole = Role::create(['name' => 'student']);
+        $studentRole = Role::findOrCreate('student');
 
         // Create student with good standing (no active sanctions)
         $goodStudent = User::factory()->create();
@@ -323,6 +325,44 @@ class StudentPortalSecurityTest extends TestCase
 
         // Check active student's standing
         $response = $this->actingAs($activeStudent)->get(route('student.dashboard'));
-        $response->assertSee('Under Sanction');
+        $response->assertSee('Action Required');
+    }
+
+    public function test_dashboard_counts_granular_statuses_in_their_summary_groups(): void
+    {
+        Role::findOrCreate('student');
+
+        $student = User::factory()->create();
+        $student->assignRole('student');
+        $staff = User::factory()->create();
+        $offense = OffenseRule::factory()->create();
+
+        foreach (['Pending Review', 'Notice Sent', 'Sanction Active', 'Appealed', 'Resolved'] as $status) {
+            ViolationRecord::factory()->create([
+                'student_id' => $student->id,
+                'offense_id' => $offense->id,
+                'reported_by' => $staff->id,
+                'status' => $status,
+            ]);
+        }
+
+        $response = $this->actingAs($student)->get(route('student.dashboard'));
+
+        $response->assertOk();
+        $response->assertViewHas('pendingReviewCount', 2);
+        $response->assertViewHas('activeSanctionsCount', 1);
+        $response->assertViewHas('appealedCount', 1);
+        $response->assertViewHas('resolvedCount', 1);
+        $response->assertSee('bg-yellow-100 text-yellow-800 border-yellow-300');
+        $response->assertSee('bg-amber-100 text-amber-800 border-amber-300');
+        $response->assertSee('bg-red-100 text-red-800 border-red-300');
+        $response->assertSee('bg-blue-100 text-blue-800 border-blue-300');
+        $response->assertSee('bg-green-100 text-green-800 border-green-300');
+
+        $viewData = $response->viewData();
+        $viewData['violationRecords']->first()->status = 'Unmapped Status';
+        $renderedDashboard = view('student.dashboard', $viewData)->render();
+
+        $this->assertStringContainsString('bg-gray-100 text-gray-800 border-gray-300', $renderedDashboard);
     }
 }

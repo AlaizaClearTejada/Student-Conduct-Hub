@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ViolationRecord extends Model
 {
@@ -51,6 +52,7 @@ class ViolationRecord extends Model
         'action_taken',
         'notice_sent_at',
         'notice_sent_by',
+        'notice_count',
         'conference_date',
         'conference_notes',
         'conference_held_at',
@@ -141,6 +143,11 @@ class ViolationRecord extends Model
         return $this->hasMany(CaseEvidence::class);
     }
 
+    public function tribunalCase(): HasOne
+    {
+        return $this->hasOne(TribunalCase::class);
+    }
+
     /**
      * Get all workflow logs for this case.
      */
@@ -204,9 +211,22 @@ class ViolationRecord extends Model
     {
         $year = now()->year;
         $month = now()->format('m');
-        $count = self::whereYear('created_at', $year)->count() + 1;
+        $prefix = sprintf('CSU-%s-%s-', $year, $month);
+        $highestSequence = self::query()
+            ->where('case_tracking_number', 'like', $prefix.'%')
+            ->pluck('case_tracking_number')
+            ->merge(TribunalCase::query()
+                ->where('case_number', 'like', $prefix.'%')
+                ->pluck('case_number'))
+            ->map(fn (string $caseNumber): int => (int) substr($caseNumber, strlen($prefix)))
+            ->max() ?? 0;
 
-        return sprintf('CSU-%s-%s-%04d', $year, $month, $count);
+        do {
+            $caseNumber = $prefix.str_pad((string) ++$highestSequence, 4, '0', STR_PAD_LEFT);
+        } while (self::query()->where('case_tracking_number', $caseNumber)->exists()
+            || TribunalCase::query()->where('case_number', $caseNumber)->exists());
+
+        return $caseNumber;
     }
 
     /**
@@ -276,7 +296,7 @@ class ViolationRecord extends Model
 
     public function canSendNotice(): bool
     {
-        return $this->status === 'Pending Review';
+        return $this->status === 'Pending Review' || ($this->status === 'Notice Sent' && $this->notice_count < 3);
     }
 
     public function canSubmitAnswer(): bool

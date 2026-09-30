@@ -23,8 +23,14 @@ class StudentRoster extends Component
 
     public ?string $importError = null;
 
+    public ?array $previewValidRows = null;
+
+    public ?int $previewSkippedCount = null;
+
     /** @var array<int, array{row: int, student_id: string, reason: string}> */
     public array $importErrors = [];
+
+    public bool $showArchived = false;
 
     /**
      * Reset pagination when search input changes.
@@ -32,6 +38,38 @@ class StudentRoster extends Component
     public function updatedSearch(): void
     {
         $this->resetPage();
+    }
+
+    /**
+     * Reset pagination when toggle changes.
+     */
+    public function updatedShowArchived(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Parse the file when it is uploaded.
+     */
+    public function updatedImportFile(): void
+    {
+        $this->reset(['importResult', 'importError', 'importErrors', 'previewValidRows', 'previewSkippedCount']);
+
+        $this->validate([
+            'importFile' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        try {
+            $import = new StudentImport;
+            Excel::import($import, $this->importFile->getRealPath());
+
+            $this->previewValidRows = $import->validRows;
+            $this->previewSkippedCount = $import->skippedCount;
+            $this->importErrors = $import->errors;
+        } catch (\Exception $e) {
+            $this->importError = 'File parsing failed: '.$e->getMessage();
+            $this->previewValidRows = null;
+        }
     }
 
     /**
@@ -59,11 +97,23 @@ class StudentRoster extends Component
     }
 
     /**
+     * Archive the specified student.
+     */
+    public function archiveStudent(int $userId): void
+    {
+        $user = User::findOrFail($userId);
+        $user->delete(); // Triggers soft delete
+
+        // Flash message or dispatch event if you want feedback, but livewire re-renders automatically
+        // $this->dispatch('student-archived');
+    }
+
+    /**
      * Open the import modal.
      */
     public function openImportModal(): void
     {
-        $this->reset(['importFile', 'importResult', 'importError', 'importErrors']);
+        $this->reset(['importFile', 'importResult', 'importError', 'importErrors', 'previewValidRows', 'previewSkippedCount']);
         $this->showImportModal = true;
     }
 
@@ -73,47 +123,70 @@ class StudentRoster extends Component
     public function closeImportModal(): void
     {
         $this->showImportModal = false;
-        $this->reset(['importFile', 'importResult', 'importError', 'importErrors']);
+        $this->reset(['importFile', 'importResult', 'importError', 'importErrors', 'previewValidRows', 'previewSkippedCount']);
     }
 
     /**
-     * Import students from uploaded Excel/CSV file.
+     * Confirm and import the previewed students.
      */
-    public function importStudents(): void
+    public function confirmImport(): void
     {
-        $this->validate([
-            'importFile' => 'required|file|mimes:xlsx,xls,csv|max:5120',
-        ]);
+        if (empty($this->previewValidRows)) {
+            $this->importError = 'No valid records to import.';
+
+            return;
+        }
+
+        // Extend execution time limit for bulk hashing (if permitted by server config)
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
 
         try {
-            $import = new StudentImport;
-            Excel::import($import, $this->importFile->getRealPath());
+            $importedCount = 0;
 
-            $this->importErrors = $import->errors;
+            foreach ($this->previewValidRows as $row) {
+                // Double check it doesn't exist just in case (including archived)
+                if (User::withTrashed()->where('student_id', $row['student_id'])->exists() || User::withTrashed()->where('email', $row['email'])->exists()) {
+                    continue;
+                }
 
-            if ($import->importedCount > 0) {
-                $this->importResult = "Successfully imported {$import->importedCount} student(s).";
-                if ($import->skippedCount > 0) {
-                    $this->importResult .= " Skipped {$import->skippedCount} duplicate(s).";
+                // Use their Student ID as the default password for convenience, or fallback to random
+                $plainPassword = $row['student_id'] ?: \Illuminate\Support\Str::random(10);
+                $row['password'] = \Illuminate\Support\Facades\Hash::make($plainPassword);
+
+                $user = User::create($row);
+                $user->assignRole('student');
+
+                // Queue the automated welcome email
+                \Illuminate\Support\Facades\Mail::to($user->email)->queue(new \App\Mail\StudentWelcomeMail($user, $plainPassword));
+
+                $importedCount++;
+            }
+
+            if ($importedCount > 0) {
+                $this->importResult = "Successfully imported {$importedCount} student(s).";
+                if ($this->previewSkippedCount > 0) {
+                    $this->importResult .= " Skipped {$this->previewSkippedCount} duplicate(s)/empty rows.";
                 }
             } else {
-                $this->importResult = "No new students imported. {$import->skippedCount} record(s) were skipped (duplicates or empty).";
+                $this->importResult = 'No new students imported. All valid records became duplicates during confirmation.';
             }
 
             $this->importError = null;
-            $this->reset('importFile');
-        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
-            $failures = $e->failures();
-            $messages = [];
-            foreach (array_slice($failures, 0, 5) as $failure) {
-                $messages[] = "Row {$failure->row()}: {$failure->attribute()} - ".implode(', ', $failure->errors());
-            }
-            $this->importError = 'Validation errors: '.implode('; ', $messages);
-            $this->importResult = null;
+            $this->reset(['importFile', 'previewValidRows', 'previewSkippedCount', 'importErrors']);
         } catch (\Exception $e) {
             $this->importError = 'Import failed: '.$e->getMessage();
-            $this->importResult = null;
         }
+    }
+
+    /**
+     * Restore the specified archived student.
+     */
+    public function restoreStudent(int $userId): void
+    {
+        $user = User::onlyTrashed()->findOrFail($userId);
+        $user->restore(); // Triggers restore
     }
 
     /**
@@ -121,7 +194,13 @@ class StudentRoster extends Component
      */
     public function render(): \Illuminate\Contracts\View\View
     {
-        $students = User::role('student')
+        $query = User::role('student');
+
+        if ($this->showArchived) {
+            $query = User::onlyTrashed()->role('student');
+        }
+
+        $students = $query
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('student_id', 'like', '%'.$this->search.'%')

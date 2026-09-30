@@ -26,7 +26,11 @@ class UserManagement extends Component
 
     public bool $showCreateModal = false;
 
+    public bool $showEditModal = false;
+
     public bool $showSuspendModal = false;
+
+    public ?int $editingUserId = null;
 
     public ?int $suspendingUserId = null;
 
@@ -70,14 +74,78 @@ class UserManagement extends Component
 
     public function openCreateModal(): void
     {
-        $this->reset(['name', 'firstName', 'lastName', 'email', 'password', 'role']);
+        $this->reset(['name', 'firstName', 'lastName', 'email', 'password', 'role', 'editingUserId']);
+        $this->showEditModal = false;
         $this->showCreateModal = true;
     }
 
     public function closeCreateModal(): void
     {
         $this->showCreateModal = false;
+        $this->showEditModal = false;
+        $this->editingUserId = null;
         $this->resetValidation();
+    }
+
+    public function openEditModal(int $userId): void
+    {
+        $user = User::findOrFail($userId);
+
+        $this->editingUserId = $user->id;
+        $this->firstName = $user->first_name ?: str($user->name)->beforeLast(' ')->toString();
+        $this->lastName = $user->last_name ?: str($user->name)->afterLast(' ')->toString();
+        $this->email = $user->email;
+        $this->password = '';
+        $this->role = $user->getRoleNames()->first() ?? 'staff';
+        $this->showCreateModal = false;
+        $this->showEditModal = true;
+        $this->resetValidation();
+    }
+
+    public function updateUser(): void
+    {
+        $user = User::findOrFail($this->editingUserId);
+
+        $validated = $this->validate([
+            'firstName' => ['required', 'string', 'max:255'],
+            'lastName' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'password' => ['nullable', 'string', 'min:8'],
+            'role' => ['required', Rule::in(['administrator', 'staff'])],
+        ]);
+
+        if ($user->id === auth()->id() && $validated['role'] !== 'administrator') {
+            session()->flash('error', 'You cannot remove administrator access from your own account.');
+
+            return;
+        }
+
+        $user->update([
+            'name' => trim($validated['firstName'].' '.$validated['lastName']),
+            'first_name' => $validated['firstName'],
+            'last_name' => $validated['lastName'],
+            'email' => $validated['email'],
+            ...($validated['password'] ? ['password' => Hash::make($validated['password'])] : []),
+        ]);
+
+        $user->syncRoles([$validated['role']]);
+
+        AuthAuditLog::create([
+            'user_id' => auth()->id(),
+            'email' => auth()->user()->email,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'event_type' => 'user_updated',
+            'additional_data' => json_encode([
+                'updated_user_id' => $user->id,
+                'updated_user_email' => $user->email,
+                'role' => $validated['role'],
+                'password_changed' => (bool) $validated['password'],
+            ]),
+        ]);
+
+        $this->closeCreateModal();
+        session()->flash('message', 'User updated successfully.');
     }
 
     public function createUser(): void

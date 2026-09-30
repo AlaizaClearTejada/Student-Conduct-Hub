@@ -100,14 +100,75 @@ class UserController extends Controller
     }
 
     /**
-     * Remove the specified user.
+     * Remove the specified user (Soft delete).
      */
     public function destroy(User $user): JsonResponse
     {
         $user->delete();
 
+        // Log audit
+        \App\Models\AuditLog::create([
+            'entity_type' => 'users',
+            'entity_id' => (string) $user->id,
+            'action' => 'DELETE',
+            'actor_id' => request()->user()?->id,
+        ]);
+
         return response()->json([
             'message' => 'User deleted successfully',
+        ]);
+    }
+
+    /**
+     * Restore a soft-deleted user.
+     */
+    public function restore(Request $request, $id): JsonResponse
+    {
+        $user = User::withTrashed()->findOrFail($id);
+        $user->restore();
+
+        // Log audit
+        \App\Models\AuditLog::create([
+            'entity_type' => 'users',
+            'entity_id' => (string) $user->id,
+            'action' => 'RESTORE',
+            'actor_id' => $request->user()?->id,
+        ]);
+
+        return response()->json([
+            'message' => 'User restored successfully',
+            'user' => new UserResource($user),
+        ]);
+    }
+
+    /**
+     * Suspend an active user.
+     */
+    public function suspend(Request $request, User $user): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $user->update([
+            'suspended_at' => now(),
+            'suspension_reason' => $validated['reason'],
+        ]);
+
+        // Log audit
+        \App\Models\AuditLog::create([
+            'entity_type' => 'users',
+            'entity_id' => (string) $user->id,
+            'action' => 'SUSPEND',
+            'actor_id' => $request->user()?->id,
+            'changes' => [
+                'reason' => $validated['reason'],
+            ],
+        ]);
+
+        return response()->json([
+            'message' => 'User suspended successfully',
+            'user' => new UserResource($user),
         ]);
     }
 }

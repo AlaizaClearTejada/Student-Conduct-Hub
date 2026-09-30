@@ -2,12 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\ProcessDocumentOcr;
 use App\Livewire\Staff\FormalChargeForm;
 use App\Models\IncidentReport;
 use App\Models\OffenseRule;
+use App\Models\TribunalCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -41,7 +44,8 @@ class FormalChargeFormTest extends TestCase
         $this->student->assignRole('student');
 
         $this->offense = OffenseRule::factory()->create([
-            'gravity' => 'major',
+            'severity_level' => 'Major',
+            'gravity' => 'minor',
             'is_active' => true,
         ]);
     }
@@ -100,6 +104,7 @@ class FormalChargeFormTest extends TestCase
     public function test_staff_can_submit_formal_charge_successfully(): void
     {
         Storage::fake('local');
+        Queue::fake();
 
         $file = UploadedFile::fake()->create('evidence.pdf', 512, 'application/pdf');
 
@@ -128,6 +133,11 @@ class FormalChargeFormTest extends TestCase
         $report = IncidentReport::where('reporter_id', $this->staff->id)->first();
         $this->assertStringStartsWith('INC-', $report->tracking_number);
         $this->assertStringStartsWith('confidential_evidence/', $report->evidence_path);
+
+        $tribunalCase = TribunalCase::where('incident_report_id', $report->id)->firstOrFail();
+        $this->assertSame($report->evidence_path, $tribunalCase->document_path);
+        $this->assertSame($report->description, $tribunalCase->description);
+        Queue::assertPushed(ProcessDocumentOcr::class);
     }
 
     // ─── Validation Failures ────────────────────────────────────────────────

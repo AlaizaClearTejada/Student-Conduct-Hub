@@ -131,7 +131,7 @@
                                         College / Department <span class="text-[#a50104]">*</span>
                                     </label>
                                     <select
-                                        wire:model="college"
+                                        wire:model.live="college"
                                         class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#a50104]/20 focus:border-[#a50104] outline-none bg-white hover:border-gray-400 transition-all appearance-none cursor-pointer"
                                     >
                                         <option value="">— Select College —</option>
@@ -140,6 +140,24 @@
                                         @endforeach
                                     </select>
                                     @error('college')
+                                        <p class="mt-2 text-xs text-red-600 font-medium">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
+                                        Program <span class="text-[#a50104]">*</span>
+                                    </label>
+                                    <select
+                                        wire:model="program"
+                                        @disabled(! $college || empty($programs))
+                                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#a50104]/20 focus:border-[#a50104] outline-none bg-white hover:border-gray-400 transition-all appearance-none cursor-pointer disabled:bg-gray-100 disabled:text-gray-500"
+                                    >
+                                        <option value="">— Select Program —</option>
+                                        @foreach ($programs as $availableProgram)
+                                            <option value="{{ $availableProgram }}">{{ $availableProgram }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('program')
                                         <p class="mt-2 text-xs text-red-600 font-medium">{{ $message }}</p>
                                     @enderror
                                 </div>

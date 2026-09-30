@@ -30,6 +30,21 @@ Route::middleware('auth')->group(function () {
     Volt::route('confirm-password', 'pages.auth.confirm-password')
         ->name('password.confirm');
 
+    // Forced Password Reset on First Login
+    Route::get('password/force-reset', [\App\Http\Controllers\Auth\ForceResetPasswordController::class, 'show'])
+        ->name('password.force-reset');
+    Route::post('password/force-reset', [\App\Http\Controllers\Auth\ForceResetPasswordController::class, 'update'])
+        ->name('password.force-reset.update');
+
+    // Multi-Factor Authentication (MFA) OTP Verification
+    Route::get('mfa/verify', [\App\Http\Controllers\Auth\MfaController::class, 'show'])
+        ->name('mfa.verify');
+    Route::post('mfa/verify', [\App\Http\Controllers\Auth\MfaController::class, 'verify'])
+        ->name('mfa.verify.check');
+    Route::post('mfa/resend', [\App\Http\Controllers\Auth\MfaController::class, 'resend'])
+        ->middleware('throttle:3,1')
+        ->name('mfa.resend');
+
     Route::post('logout', function () {
         $logout = app(\App\Livewire\Actions\Logout::class);
         $logout();

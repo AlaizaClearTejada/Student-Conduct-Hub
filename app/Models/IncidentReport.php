@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class IncidentReport extends Model
 {
@@ -25,6 +26,11 @@ class IncidentReport extends Model
         'description',
         'evidence_path',
         'status',
+        'recommended_violation',
+        'recommended_sanction',
+        'severity',
+        'decision_score',
+        'matched_keywords',
     ];
 
     /**
@@ -37,6 +43,7 @@ class IncidentReport extends Model
         return [
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
+            'matched_keywords' => 'array',
         ];
     }
 
@@ -62,5 +69,10 @@ class IncidentReport extends Model
     public function offense(): BelongsTo
     {
         return $this->belongsTo(OffenseRule::class, 'offense_id');
+    }
+
+    public function tribunalCase(): HasOne
+    {
+        return $this->hasOne(TribunalCase::class);
     }
 }
