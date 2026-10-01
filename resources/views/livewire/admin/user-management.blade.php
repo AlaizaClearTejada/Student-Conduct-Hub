@@ -1,6 +1,6 @@
 <div>
     <!-- Page Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
             <h1 class="text-2xl font-bold text-mahogany">Staff & User Management</h1>
             <p class="text-gray-600">Manage administrator and staff accounts</p>
@@ -198,7 +198,7 @@
                 <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="closeCreateModal"></div>
 
                 <!-- Modal panel -->
-                <div class="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-xl sm:align-middle">
+                <div class="inline-block w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 my-4 sm:my-8 text-left align-middle transition-all transform bg-white shadow-xl rounded-xl sm:align-middle">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-semibold text-mahogany">{{ $showEditModal ? 'Edit User' : 'Create New User' }}</h3>
                         <button wire:click="closeCreateModal" class="text-gray-400 hover:text-gray-600">
@@ -209,7 +209,7 @@
                     </div>
 
                     <form wire:submit="{{ $showEditModal ? 'updateUser' : 'createUser' }}" class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                                 <input type="text" wire:model="firstName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-inferno focus:border-inferno @error('firstName') border-red-500 @enderror">
@@ -265,7 +265,7 @@
                 <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="closeSuspendModal"></div>
 
                 <!-- Modal panel -->
-                <div class="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-xl sm:align-middle">
+                <div class="inline-block w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 sm:p-6 my-4 sm:my-8 text-left align-middle transition-all transform bg-white shadow-xl rounded-xl sm:align-middle">
                     <div class="flex items-center gap-3 mb-4">
                         <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
                             <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

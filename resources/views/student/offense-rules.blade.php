@@ -8,7 +8,7 @@
         window.__offenseData = {!! $offenseJson !!};
     </script>
 
-    <div class="p-6 md:p-8 max-w-7xl mx-auto space-y-6"
+    <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6"
          x-data="conductManual()">
 
             {{-- Header / summary card --}}
@@ -58,7 +58,7 @@
                     </div>
                 </div>
                 {{-- Quick stats --}}
-                <div class="grid grid-cols-2 gap-3 md:min-w-[240px]">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:min-w-[240px]">
                     @foreach($categories as $cat)
                     <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
                         <p class="text-2xl font-extrabold text-white">{{ $offenseRules->where('category', $cat)->count() }}</p>
@@ -245,7 +245,7 @@
                     {{-- Progressive Sanctions --}}
                     <div>
                         <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Progressive Sanctions</p>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div class="rounded-xl border border-green-200 bg-green-50 p-4">
                                 <div class="flex items-center gap-2 mb-2">
                                     <span class="w-6 h-6 rounded-full bg-green-200 text-green-800 text-xs font-black flex items-center justify-center">1</span>
@@ -316,7 +316,7 @@
     {{-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
          CONDUCT POLICY CHATBOT - AI-Powered (Claude via Laravel proxy)
     â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• --}}
-    <div x-data="chatbot()" x-cloak class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+    <div x-data="chatbot()" x-cloak class="fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-50 flex max-w-[calc(100vw-1.5rem)] flex-col items-end gap-3">
 
         {{-- Chat window --}}
         <div x-show="open"
@@ -326,8 +326,8 @@
              x-transition:leave="transition duration-200"
              x-transition:leave-start="opacity-100 scale-100 translate-y-0"
              x-transition:leave-end="opacity-0 scale-90 translate-y-4"
-             class="w-[370px] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden"
-             style="max-height:580px; transform-origin: bottom right;">
+             class="w-full max-w-[370px] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden"
+             style="max-height:min(580px, calc(100dvh - 1.5rem)); transform-origin: bottom right;">
 
             {{-- Header --}}
             <div class="flex items-center justify-between px-4 py-3.5 flex-shrink-0"

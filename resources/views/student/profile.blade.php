@@ -3,11 +3,11 @@
         My Profile
     </x-slot>
 
-    <div class="p-8 max-w-5xl mx-auto space-y-6">
+    <div class="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
 
         {{-- Student Information Card --}}
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="bg-[#250001] px-8 py-6 flex items-center gap-6">
+            <div class="bg-[#250001] px-4 sm:px-8 py-6 flex items-center gap-4 sm:gap-6">
                 <div class="w-20 h-20 rounded-full bg-[#f3f3f3] text-[#250001] flex items-center justify-center font-extrabold text-2xl shadow-lg flex-shrink-0">
                     {{ strtoupper(substr($user->first_name ?? $user->name, 0, 1)) }}{{ strtoupper(substr($user->last_name ?? '', 0, 1)) }}
                 </div>
@@ -24,7 +24,7 @@
                 </div>
             </div>
 
-            <div class="px-8 py-6 grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
+            <div class="px-4 sm:px-8 py-6 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-5">
                 <div>
                     <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Student ID</p>
                     <p class="text-sm font-medium text-gray-800">{{ $user->student_id ?? '—' }}</p>
@@ -53,7 +53,7 @@
         </div>
 
         {{-- Conduct Summary --}}
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-center">
                 <p class="text-2xl font-bold {{ $activeSanctionsCount > 0 ? 'text-[#a50104]' : 'text-gray-400' }}">
                     {{ $activeSanctionsCount }}
@@ -77,7 +77,7 @@
         </div>
 
         {{-- Change Password --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-8">
             <livewire:profile.update-password-form />
         </div>
 

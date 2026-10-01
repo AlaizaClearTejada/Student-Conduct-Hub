@@ -62,7 +62,7 @@
 
                 <!-- System Impact Stats -->
                 <div class="max-w-3xl mx-auto mb-4">
-                    <div class="grid grid-cols-3 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div class="bg-white rounded-lg p-3 shadow-lg border-2 border-platinum hover:border-inferno transition-all">
                             <div class="flex items-center justify-center gap-1.5 mb-0.5">
                                 <svg class="w-4 h-4 text-inferno" fill="currentColor" viewBox="0 0 20 20">

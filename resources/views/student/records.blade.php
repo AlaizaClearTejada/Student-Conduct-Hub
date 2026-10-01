@@ -3,7 +3,7 @@
         My Conduct Records
     </x-slot>
 
-    <div class="p-8 max-w-7xl mx-auto space-y-6">
+    <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
         
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">

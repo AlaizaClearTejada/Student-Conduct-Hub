@@ -3,7 +3,7 @@
         My Submitted Reports
     </x-slot>
 
-    <div class="p-8 max-w-7xl mx-auto space-y-8">
+    <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
 
         {{-- Incident Reports Section --}}
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">

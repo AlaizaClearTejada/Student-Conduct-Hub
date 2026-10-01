@@ -70,7 +70,7 @@
                                 <h3 class="text-sm font-bold text-white uppercase tracking-wider">Personal Information</h3>
                             </div>
                             <div class="p-6 bg-gradient-to-br from-white to-gray-50/50 space-y-5">
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
                                             First Name <span class="text-[#a50104]">*</span>
@@ -161,7 +161,7 @@
                                         <p class="mt-2 text-xs text-red-600 font-medium">{{ $message }}</p>
                                     @enderror
                                 </div>
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
                                             Year Level <span class="text-[#a50104]">*</span>
@@ -217,9 +217,9 @@
                 </div>
 
                 {{-- Footer --}}
-                <div class="px-6 sm:px-8 py-5 bg-gradient-to-r from-white to-gray-50 border-t-2 border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="px-6 sm:px-8 py-5 bg-gradient-to-r from-white to-gray-50 border-t-2 border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
                     <p class="text-xs text-gray-500 font-medium hidden sm:block"><span class="text-[#a50104] font-bold">*</span> Required fields</p>
-                    <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
                         <a
                             href="{{ route('staff.students') }}"
                             wire:navigate

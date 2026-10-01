@@ -1,7 +1,7 @@
 <x-staff-app-layout>
     <x-slot name="header">Student Roster</x-slot>
 
-    <div class="p-8 max-w-7xl mx-auto space-y-6">
+    <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
         {{-- Breadcrumb Navigation --}}
         <nav class="flex items-center text-sm font-medium text-gray-500">
             <a href="{{ route('staff.dashboard') }}" class="hover:text-[#590004] transition-colors">

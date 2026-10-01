@@ -3,7 +3,7 @@
         Incident Report Details
     </x-slot>
 
-    <div class="p-8 max-w-5xl mx-auto space-y-6">
+    <div class="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
         
         <div class="flex items-center justify-between">
             <a href="{{ route('staff.my-reports') }}" class="flex items-center text-[#590004] hover:text-[#a50104] font-medium transition-colors">

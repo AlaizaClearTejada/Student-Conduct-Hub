@@ -3,7 +3,7 @@
         {{ request('type') === 'quick' ? 'Log Minor Infraction' : 'File Formal Charge' }}
     </x-slot>
 
-    <div class="p-8 max-w-4xl mx-auto">
+    <div class="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
         
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
             <div class="mb-6">

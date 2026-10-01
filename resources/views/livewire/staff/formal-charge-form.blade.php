@@ -15,7 +15,7 @@
             </div>
         </div>
 
-        <div class="p-8">
+        <div class="p-4 sm:p-8">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                 {{-- Student ID (auto-fetch trigger) --}}
@@ -173,7 +173,7 @@
             </div>
         </div>
 
-        <div class="p-8 space-y-6">
+        <div class="p-4 sm:p-8 space-y-6">
 
             {{-- Offense --}}
             <div>
@@ -268,7 +268,7 @@
     {{-- ═══════════════════════════════════════════════════ --}}
     {{-- SECTION 3: Certification & Submit                   --}}
     {{-- ═══════════════════════════════════════════════════ --}}
-    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md border border-gray-200 p-8 mb-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-8 mb-8">
 
         <div class="flex items-start gap-4 mb-6">
             <div class="flex items-center h-5 mt-1">

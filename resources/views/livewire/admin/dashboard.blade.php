@@ -252,7 +252,7 @@
     <!-- Quick Actions -->
     <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h3 class="text-lg font-semibold text-mahogany mb-4">Quick Actions</h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <a href="{{ route('admin.users') }}?action=create" class="flex flex-col items-center gap-2 p-4 rounded-lg border border-gray-200 hover:border-inferno hover:bg-red-50 transition-colors group">
                 <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-inferno group-hover:text-white transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

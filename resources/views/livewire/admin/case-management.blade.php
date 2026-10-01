@@ -364,10 +364,10 @@
             <div class="flex items-start justify-center min-h-screen pt-4 px-4 pb-20">
                 <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" wire:click="closeCase"></div>
 
-                <div class="relative bg-white rounded-2xl shadow-2xl max-w-5xl w-full z-10 my-8 border border-gray-200">
+                <div class="relative my-2 sm:my-8 max-h-[calc(100dvh-1rem)] w-full max-w-5xl overflow-y-auto rounded-2xl border border-gray-200 bg-white shadow-2xl z-10">
 
                     {{-- Official Header --}}
-                    <div class="bg-gradient-to-r from-mahogany to-black-cherry rounded-t-2xl px-8 py-6 text-white">
+                    <div class="bg-gradient-to-r from-mahogany to-black-cherry rounded-t-2xl px-4 sm:px-8 py-5 sm:py-6 text-white">
                         <div class="flex items-start justify-between">
                             <div>
                                 <div class="flex items-center gap-3 mb-1">
@@ -411,7 +411,7 @@
                                         <p class="text-xs text-gray-400 uppercase tracking-wide">Full Name</p>
                                         <p class="text-sm font-semibold text-gray-900 mt-1">{{ $selectedCase->student?->name ?? 'N/A' }}</p>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <p class="text-xs text-gray-400 uppercase tracking-wide">Student ID</p>
                                             <p class="text-sm font-medium text-gray-800 font-mono mt-1">{{ $selectedCase->student?->student_id ?? 'N/A' }}</p>
@@ -447,7 +447,7 @@
                                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">{{ $selectedCase->offenseRule?->category ?? 'N/A' }}</span>
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <p class="text-xs text-gray-400 uppercase tracking-wide">Investigation Type</p>
                                             <span class="inline-flex items-center mt-1 px-2.5 py-0.5 rounded-full text-xs font-semibold
@@ -461,7 +461,7 @@
                                             <p class="text-sm font-medium text-gray-800 mt-1">{{ $selectedCase->offense_count ?? 1 }}{{ $selectedCase->offense_count === 1 ? 'st' : ($selectedCase->offense_count === 2 ? 'nd' : ($selectedCase->offense_count === 3 ? 'rd' : 'th')) }} Offense</p>
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <p class="text-xs text-gray-400 uppercase tracking-wide">Reported By</p>
                                             <p class="text-sm font-medium text-gray-800 mt-1">{{ $selectedCase->reporter?->name ?? 'N/A' }}</p>
@@ -476,7 +476,7 @@
                         </div>
 
                         {{-- Key Dates Row --}}
-                        <div class="grid grid-cols-2 sm:grid-cols-5 divide-x divide-gray-200 border-b border-gray-200 bg-gray-50/50">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-gray-200 border-b border-gray-200 bg-gray-50/50">
                             <div class="px-5 py-3">
                                 <p class="text-xs text-gray-400 uppercase tracking-wide">Charge Filed</p>
                                 <p class="text-sm font-semibold text-gray-800 mt-0.5">{{ $selectedCase->charge_filed_date?->format('M d, Y') ?? '—' }}</p>
@@ -520,7 +520,7 @@
                                     <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Sanction Details</h4>
                                 </div>
                                 <div class="bg-red-50/50 border border-red-100 rounded-xl p-5">
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                         <div>
                                             <p class="text-xs text-gray-400 uppercase tracking-wide">Settled By</p>
                                             @if($selectedCase->settled_by)
@@ -536,7 +536,7 @@
                                             <p class="text-sm font-semibold text-gray-900 mt-0.5">{{ $selectedCase->applied_sanction ?? '—' }}</p>
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                         <div>
                                             <p class="text-xs text-gray-400 uppercase tracking-wide">Sanction Imposed</p>
                                             <p class="text-sm font-medium text-gray-800 mt-0.5">{{ $selectedCase->sanction_imposed_at?->format('F d, Y \a\t g:i A') ?? '—' }}</p>
@@ -605,7 +605,7 @@
                                 <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Conference / Review</h4>
                             </div>
                             <div class="bg-purple-50/50 border border-purple-100 rounded-xl p-5 space-y-3">
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <p class="text-xs text-gray-400 uppercase tracking-wide">Scheduled</p>
                                         <p class="text-sm font-medium text-gray-800 mt-0.5">{{ $selectedCase->conference_date?->format('F d, Y \a\t g:i A') ?? '—' }}</p>
@@ -658,7 +658,7 @@
 
                             @if($selectedCase->evidence && $selectedCase->evidence->count() > 0)
                                 {{-- Case Evidence records --}}
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     @foreach($selectedCase->evidence as $evidence)
                                         <a href="{{ route('admin.evidence.download', $evidence) }}" target="_blank" class="flex items-center gap-3 bg-gray-50 rounded-lg border border-gray-200 p-3 hover:bg-indigo-50 hover:border-indigo-300 transition-colors group">
                                             <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0
@@ -687,7 +687,7 @@
 
                             @elseif($sourceReport && $sourceReport->evidence_path)
                                 {{-- Fallback: evidence from source IncidentReport --}}
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <a href="{{ route('admin.report-evidence.download', $sourceReport) }}" target="_blank" class="flex items-center gap-3 bg-gray-50 rounded-lg border border-gray-200 p-3 hover:bg-indigo-50 hover:border-indigo-300 transition-colors group">
                                         <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
                                             <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
@@ -1105,7 +1105,7 @@
 
                     {{-- Case Context Card --}}
                     <div class="px-6 pt-5 pb-4 border-b border-gray-200 bg-gray-50/50">
-                        <div class="grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
                             <div>
                                 <span class="text-xs text-gray-400 uppercase tracking-wide">Respondent</span>
                                 <p class="font-semibold text-gray-900">{{ $sanctionCaseContext['student_name'] ?? 'N/A' }}</p>
@@ -1148,7 +1148,7 @@
                             <span class="text-xs font-bold text-amber-800 uppercase tracking-wide">Progressive Sanction Schedule</span>
                         </div>
                         @php $oc = $sanctionCaseContext['offense_count'] ?? 1; @endphp
-                        <div class="grid grid-cols-3 gap-2">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
                             @if(!empty($sanctionCaseContext['first_sanction']))
                             <div class="rounded-lg border p-2 text-xs {{ $oc === 1 ? 'bg-inferno/10 border-inferno/30 ring-1 ring-inferno/20' : 'bg-white border-gray-200' }}">
                                 <span class="font-semibold {{ $oc === 1 ? 'text-inferno' : 'text-gray-500' }}">1st Offense</span>
@@ -1188,7 +1188,7 @@
                         {{-- Settled By --}}
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Settled By <span class="text-red-500">*</span></label>
-                            <div class="grid grid-cols-2 gap-3">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <label class="relative flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors {{ $settledBy === 'Dean' ? 'border-inferno bg-inferno/5 ring-1 ring-inferno/20' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50' }}">
                                     <input type="radio" wire:model.live="settledBy" value="Dean" class="text-inferno focus:ring-inferno">
                                     <div>
@@ -1208,7 +1208,7 @@
                         </div>
 
                         {{-- Sanction Imposed Date & Time --}}
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-1">Date Imposed <span class="text-red-500">*</span></label>
                                 <input type="date" wire:model="sanctionImposedDate" class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-inferno focus:border-inferno text-sm">
@@ -1222,7 +1222,7 @@
                         </div>
 
                         {{-- Sanction Effective Date & Time --}}
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-1">Effective Date <span class="text-xs font-normal text-gray-400">(Optional)</span></label>
                                 <input type="date" wire:model="sanctionEffectiveDate" class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-inferno focus:border-inferno text-sm">
@@ -1407,7 +1407,7 @@
                 </div>
 
                 <form wire:submit="scheduleConference" class="p-6 space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Conference Date <span class="text-red-500">*</span></label>
                             <input type="date" wire:model="conferenceDate" min="{{ now()->addDay()->toDateString() }}" class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-inferno focus:border-inferno text-sm">

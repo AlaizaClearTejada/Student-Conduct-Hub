@@ -3,7 +3,7 @@
         Incident Reporting Hub
     </x-slot>
 
-    <div x-data class="p-8 max-w-7xl mx-auto space-y-8">
+    <div x-data class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8">
         
         @if (session('success'))
             <div class="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
@@ -139,7 +139,7 @@
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="px-8 py-5 border-b border-gray-100 bg-[#f3f3f3] flex justify-between items-center">
+            <div class="px-4 sm:px-8 py-5 border-b border-gray-100 bg-[#f3f3f3] flex flex-wrap justify-between items-center gap-3">
                 <h3 class="text-lg font-bold text-[#250001]">Recently Submitted Reports</h3>
                 @if($recentReports->count() > 0)
                     <a href="{{ route('staff.my-reports') }}" class="text-sm text-[#590004] hover:text-[#a50104] font-semibold transition-colors">
@@ -149,7 +149,8 @@
             </div>
             
             @if($recentReports->count() > 0)
-                <table class="w-full text-left border-collapse">
+                <div class="overflow-x-auto">
+                <table class="w-full min-w-[40rem] text-left border-collapse">
                     <thead>
                         <tr class="border-b border-gray-200 bg-white">
                             <th class="px-8 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date Filed</th>
@@ -191,6 +192,7 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
                 <div class="px-8 py-4 border-t border-gray-100 bg-white text-sm text-gray-500 italic">
                     Note: To maintain student privacy, full resolution details are only accessible to the OSDW and the Student Disciplinary Tribunal.
                 </div>

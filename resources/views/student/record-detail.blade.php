@@ -3,7 +3,7 @@
         Violation Record Details
     </x-slot>
 
-    <div class="p-8 max-w-5xl mx-auto space-y-6">
+    <div class="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
 
         <a href="{{ route('student.dashboard') }}"
            class="inline-flex items-center text-sm font-medium text-[#590004] hover:text-[#a50104] transition-colors mb-4">
@@ -92,7 +92,7 @@
         {{-- Key Dates --}}
         @if($record->charge_filed_date || $record->answer_deadline)
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-200">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-gray-200">
                 <div class="px-5 py-4">
                     <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Charge Filed</p>
                     <p class="text-sm font-semibold text-gray-800 mt-1">{{ $record->charge_filed_date?->format('M d, Y') ?? '—' }}</p>
@@ -123,7 +123,7 @@
             <div class="px-8 py-5 border-b border-gray-100 bg-gray-50">
                 <h3 class="text-[#250001] font-bold text-lg">Offense Information</h3>
             </div>
-            <div class="p-8 space-y-5">
+            <div class="p-4 sm:p-8 space-y-5">
                 <div>
                     <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Offense Code</label>
                     <p class="text-[#250001] font-bold text-lg mt-1">{{ $record->offenseRule->code }}</p>
@@ -226,7 +226,7 @@
                         @endif
                     </p>
                 </div>
-                <form method="POST" action="{{ route('student.records.submit-answer', $record) }}" class="p-8">
+                <form method="POST" action="{{ route('student.records.submit-answer', $record) }}" class="p-4 sm:p-8">
                     @csrf
                     <p class="text-sm text-gray-600 mb-4">
                         You may submit a written answer or defense in response to the charge filed against you. This is your opportunity to present your side of the case.
@@ -292,7 +292,7 @@
             <div class="px-8 py-5 border-b border-gray-100 bg-red-50">
                 <h3 class="text-[#250001] font-bold text-lg">Sanction Details</h3>
             </div>
-            <div class="p-8 space-y-4">
+                <div class="p-4 sm:p-8 space-y-4">
                 @if($record->applied_sanction)
                 <div>
                     <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Applied Sanction</label>

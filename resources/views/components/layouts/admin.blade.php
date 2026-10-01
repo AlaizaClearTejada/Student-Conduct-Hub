@@ -16,9 +16,10 @@
     @livewireStyles
 </head>
 <body class="font-sans antialiased bg-gray-100">
-    <div class="min-h-screen flex">
+    <div class="min-h-screen flex" x-data="{ sidebarOpen: false }" @keydown.escape.window="sidebarOpen = false">
         <!-- Fixed Sidebar -->
-        <aside class="fixed inset-y-0 left-0 w-64 bg-mahogany text-white flex flex-col z-50">
+        <div x-cloak x-show="sidebarOpen" x-transition.opacity @click="sidebarOpen = false" class="fixed inset-0 bg-black/50 z-40 lg:hidden" aria-hidden="true"></div>
+        <aside id="admin-sidebar" :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="fixed inset-y-0 left-0 w-72 max-w-[85vw] lg:w-64 bg-mahogany text-white flex flex-col z-50 transform transition-transform duration-200 lg:translate-x-0">
             <!-- Brand Identity -->
             <div class="h-16 flex items-center gap-3 px-4 border-b border-black-cherry">
                 <img src="{{ asset('LOGO/csu.png') }}" alt="CSU Logo" class="h-10 w-10 object-contain">
@@ -29,7 +30,7 @@
             </div>
 
             <!-- Navigation -->
-            <nav class="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+            <nav @click="if ($event.target.closest('a')) sidebarOpen = false" class="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
                 <a href="{{ route('admin.dashboard') }}"
                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('admin.dashboard') ? 'bg-inferno text-white' : 'text-gray-200 hover:bg-black-cherry hover:text-white' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,18 +86,21 @@
         </aside>
 
         <!-- Main Content Area -->
-        <div class="flex-1 ml-64">
+        <div class="flex-1 min-w-0 lg:ml-64">
             <!-- Top Header Bar -->
-            <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-40">
-                <div class="flex items-center gap-4">
+            <header class="min-h-16 bg-white border-b border-gray-200 flex items-center justify-between gap-3 px-4 sm:px-6 sticky top-0 z-30">
+                <div class="min-w-0 flex items-center gap-3 sm:gap-4">
+                    <button type="button" @click="sidebarOpen = true" aria-label="Open navigation menu" aria-controls="admin-sidebar" :aria-expanded="sidebarOpen.toString()" class="shrink-0 inline-flex items-center justify-center rounded-lg p-2 text-gray-600 hover:bg-gray-100 lg:hidden">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
                     @if(isset($breadcrumb))
-                        {{ $breadcrumb }}
+                        <div class="min-w-0 truncate">{{ $breadcrumb }}</div>
                     @else
-                        <h2 class="text-lg font-semibold text-mahogany">{{ $title ?? 'Dashboard' }}</h2>
+                        <h2 class="truncate text-base sm:text-lg font-semibold text-mahogany">{{ $title ?? 'Dashboard' }}</h2>
                     @endif
                 </div>
 
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 sm:gap-4">
                     <!-- Admin Profile Dropdown -->
                     <div class="relative" x-data="{ open: false }">
                         <button @click="open = !open" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
@@ -142,7 +146,7 @@
             </header>
 
             <!-- Page Content -->
-            <main class="p-6">
+            <main class="min-w-0 p-4 sm:p-6">
                 {{ $slot }}
             </main>
         </div>

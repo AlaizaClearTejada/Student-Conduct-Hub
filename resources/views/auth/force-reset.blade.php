@@ -18,7 +18,7 @@
         <!-- Password Policy Indicators -->
         <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200" x-data="passwordValidator()">
             <p class="text-xs font-semibold text-gray-700 mb-3 uppercase tracking-wide">Password Requirements</p>
-            <div class="grid grid-cols-2 gap-2">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <div class="flex items-center gap-2 text-xs" :class="checks.length ? 'text-green-600' : 'text-gray-400'">
                     <svg class="w-4 h-4" :class="checks.length ? 'text-green-500' : 'text-gray-300'" fill="currentColor" viewBox="0 0 20 20">
                         <path x-show="checks.length" fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>

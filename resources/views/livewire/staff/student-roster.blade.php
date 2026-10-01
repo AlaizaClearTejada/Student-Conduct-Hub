@@ -11,8 +11,8 @@
     @endif
 
     {{-- Toolbar --}}
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div class="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
             <div class="relative w-full sm:w-80">
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -183,8 +183,8 @@
 
     {{-- Import Excel File Modal --}}
     @if($showImportModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" wire:click.self="closeImportModal">
-            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4">
+        <div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4" wire:click.self="closeImportModal">
+            <div class="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto bg-white rounded-2xl shadow-2xl">
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h3 class="text-lg font-bold text-[#250001]">Import Students from Excel</h3>
                     <button wire:click="closeImportModal" class="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100">
