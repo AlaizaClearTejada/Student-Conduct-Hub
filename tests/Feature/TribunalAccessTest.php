@@ -73,6 +73,13 @@ class TribunalAccessTest extends TestCase
 
         $this->withSession(['mfa_verified' => true])
             ->actingAs($administrator)
+            ->get(route('admin.settings'))
+            ->assertOk()
+            ->assertSee(route('tribunal.cases.index'), false)
+            ->assertSee('Tribunal Module');
+
+        $this->withSession(['mfa_verified' => true])
+            ->actingAs($administrator)
             ->get(route('tribunal.cases.index'))
             ->assertOk()
             ->assertSee(route('tribunal.cases.index'), false)
