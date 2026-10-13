@@ -13,7 +13,7 @@
     <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="p-6 border-b border-gray-200 bg-gray-50">
             <h3 class="text-lg font-semibold text-gray-900">File a New Tribunal Case</h3>
-            <p class="text-sm text-gray-500 mt-1">Enter the required information to log a new confidential case.</p>
+            <p class="text-sm text-gray-500 mt-1">This form records a formal charge for confidential Tribunal review. Minor quick logs are not accepted.</p>
         </div>
 
         <form action="{{ route('tribunal.cases.store') }}" method="POST" class="p-6 space-y-6">

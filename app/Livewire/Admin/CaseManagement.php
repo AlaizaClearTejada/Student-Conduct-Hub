@@ -211,6 +211,19 @@ class CaseManagement extends Component
             'selectedSDTMembers.max' => 'You must select exactly 5 tribunal members per CSU Section G.1',
         ]);
 
+        $tribunalCase = TribunalCase::query()
+            ->where('case_number', $this->selectedCase->case_tracking_number)
+            ->with('incidentReport')
+            ->first();
+        $isMajorCase = strtolower((string) $this->selectedCase->offenseRule?->severity_level) === 'major';
+        $isExistingEligibleCase = $tribunalCase?->isEligibleForTribunal() === true;
+
+        if (! $isMajorCase && ! $isExistingEligibleCase) {
+            $this->addError('selectedSDTMembers', 'Only major cases or formal charges can be assigned to the Tribunal.');
+
+            return;
+        }
+
         $this->selectedCase->update([
             'assigned_to_sdt' => true,
             'sdt_members' => $this->selectedSDTMembers,
@@ -218,9 +231,7 @@ class CaseManagement extends Component
             'investigation_type' => 'Tribunal',
         ]);
 
-        if (! \App\Models\TribunalCase::query()
-            ->where('case_number', $this->selectedCase->case_tracking_number)
-            ->exists()) {
+        if ($tribunalCase === null) {
             $student = $this->selectedCase->student;
             $offense = $this->selectedCase->offenseRule;
             $evidence = \App\Models\CaseEvidence::query()
@@ -237,6 +248,7 @@ class CaseManagement extends Component
                 'priority' => $offense?->gravity === 'major' ? 'high' : 'normal',
                 'description' => $this->selectedCase->incident_description,
                 'status' => \App\Enums\CaseStatus::UNDER_FORMAL_INVESTIGATION,
+                'is_formal_charge' => false,
                 'document_path' => $evidence?->file_path,
                 'document_disk' => 'local',
             ]);
@@ -244,6 +256,8 @@ class CaseManagement extends Component
             if ($tribunalCase->document_path !== null) {
                 \App\Jobs\ProcessDocumentOcr::dispatch($tribunalCase)->afterCommit();
             }
+        } elseif ($tribunalCase->violation_record_id === null) {
+            $tribunalCase->update(['violation_record_id' => $this->selectedCase->id]);
         }
 
         CaseWorkflowLog::logAction(
@@ -380,7 +394,9 @@ class CaseManagement extends Component
     {
         $report = IncidentReport::with('offense')->findOrFail($reportId);
         $this->acceptCaseId = $reportId;
-        $this->acceptInvestigationType = ($report->report_type === 'Formal Charge' || $report->offense?->requiresTribunalReview())
+        $this->acceptInvestigationType = ($report->report_type === 'Formal Charge'
+            || strtolower((string) $report->severity) === 'major'
+            || strtolower((string) $report->offense?->severity_level) === 'major')
             ? 'Tribunal'
             : 'Summary';
         $this->acceptDateOfIncident = $report->created_at->toDateString();
@@ -401,7 +417,16 @@ class CaseManagement extends Component
 
         $report = IncidentReport::with('offense')->findOrFail($this->acceptCaseId);
         $offense = $report->offense;
-        $isTribunalCase = $this->acceptInvestigationType === 'Tribunal' || $offense?->requiresTribunalReview();
+        $isTribunalCase = $report->report_type === 'Formal Charge'
+            || strtolower((string) $report->severity) === 'major'
+            || strtolower((string) $offense?->severity_level) === 'major';
+
+        if ($this->acceptInvestigationType === 'Tribunal' && ! $isTribunalCase) {
+            $this->addError('acceptInvestigationType', 'Only major cases or formal charges can be assigned to the Tribunal.');
+
+            return;
+        }
+
         $investigationType = $isTribunalCase ? 'Tribunal' : $this->acceptInvestigationType;
         $tribunalCase = TribunalCase::where('incident_report_id', $report->id)->first();
 
@@ -472,6 +497,7 @@ class CaseManagement extends Component
                 'priority' => $offense?->gravity === 'major' ? 'high' : 'normal',
                 'description' => $report->description,
                 'status' => \App\Enums\CaseStatus::UNDER_FORMAL_INVESTIGATION,
+                'is_formal_charge' => $report->report_type === 'Formal Charge',
                 'document_path' => $tribunalDocumentPath,
                 'document_disk' => 'local',
             ]);
@@ -837,7 +863,20 @@ class CaseManagement extends Component
                     ->orWhereHas('offenseRule', fn ($oq) => $oq->where('title', 'like', "%{$this->searchTerm}%"));
             })
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
-            ->when($this->filterInvestigationType, fn ($q) => $q->where('investigation_type', $this->filterInvestigationType))
+            ->when($this->filterInvestigationType === 'Tribunal', function ($q): void {
+                $q->where('investigation_type', 'Tribunal')
+                    ->where(function ($eligibleQuery): void {
+                        $eligibleQuery
+                            ->whereHas('offenseRule', fn ($offenseQuery) => $offenseQuery
+                                ->whereRaw('LOWER(severity_level) = ?', ['major']))
+                            ->orWhereHas('tribunalCase', fn ($tribunalCaseQuery) => $tribunalCaseQuery
+                                ->forTribunal());
+                    });
+            })
+            ->when(
+                $this->filterInvestigationType && $this->filterInvestigationType !== 'Tribunal',
+                fn ($q) => $q->where('investigation_type', $this->filterInvestigationType)
+            )
             ->when($this->filterOffenseCategory, function ($q) {
                 $q->whereHas('offenseRule', fn ($oq) => $oq->where('category', $this->filterOffenseCategory));
             })
@@ -875,8 +914,16 @@ class CaseManagement extends Component
                 ->where('decision_deadline', '<', now())
                 ->whereNull('final_decision')
                 ->count(),
-            'awaiting_tribunal' => ViolationRecord::where('investigation_type', 'Tribunal')
+            'awaiting_tribunal' => ViolationRecord::query()
+                ->where('investigation_type', 'Tribunal')
                 ->where('assigned_to_sdt', false)
+                ->where(function ($eligibleQuery): void {
+                    $eligibleQuery
+                        ->whereHas('offenseRule', fn ($offenseQuery) => $offenseQuery
+                            ->whereRaw('LOWER(severity_level) = ?', ['major']))
+                        ->orWhereHas('tribunalCase', fn ($tribunalCaseQuery) => $tribunalCaseQuery
+                            ->forTribunal());
+                })
                 ->count(),
         ];
     }

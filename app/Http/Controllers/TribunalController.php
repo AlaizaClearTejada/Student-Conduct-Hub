@@ -19,6 +19,7 @@ class TribunalController extends Controller
     public function index(): View
     {
         $cases = TribunalCase::query()
+            ->forTribunal()
             ->with([
                 'incidentReport.student',
                 'incidentReport.offense',
@@ -49,7 +50,10 @@ class TribunalController extends Controller
             'status' => ['required', Rule::enum(CaseStatus::class)],
         ]);
 
-        TribunalCase::query()->create($validated);
+        TribunalCase::query()->create([
+            ...$validated,
+            'is_formal_charge' => true,
+        ]);
 
         return redirect()
             ->route('tribunal.cases.index')
@@ -58,6 +62,8 @@ class TribunalController extends Controller
 
     public function show(TribunalCase $case): View
     {
+        abort_unless($case->isEligibleForTribunal(), 404);
+
         $case->load([
             'incidentReport.student',
             'incidentReport.offense',
@@ -71,6 +77,8 @@ class TribunalController extends Controller
 
     public function document(TribunalCase $case): BinaryFileResponse
     {
+        abort_unless($case->isEligibleForTribunal(), 404);
+
         $disk = $case->document_disk ?: 'local';
         abort_unless($case->document_path && Storage::disk($disk)->exists($case->document_path), 404);
 
@@ -81,6 +89,8 @@ class TribunalController extends Controller
 
     public function updateStatus(Request $request, TribunalCase $case): RedirectResponse
     {
+        abort_unless($case->isEligibleForTribunal(), 404);
+
         $validated = $request->validate([
             'status' => ['required', Rule::enum(CaseStatus::class)],
         ]);

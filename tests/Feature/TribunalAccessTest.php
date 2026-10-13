@@ -4,11 +4,14 @@ namespace Tests\Feature;
 
 use App\Enums\CaseStatus;
 use App\Jobs\ProcessDocumentOcr;
+use App\Livewire\Admin\CaseManagement;
+use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\UserManagement;
 use App\Models\IncidentReport;
 use App\Models\OffenseRule;
 use App\Models\TribunalCase;
 use App\Models\User;
+use App\Models\ViolationRecord;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -40,25 +43,40 @@ class TribunalAccessTest extends TestCase
             ->assertOk()
             ->assertSee('Tribunal Module')
             ->assertSee('+ New Case')
+            ->assertSee('bg-inferno text-white', false)
             ->assertDontSee('Dashboard Overview')
             ->assertDontSee('Staff & User Management');
     }
 
-    public function test_users_outside_the_tribunal_panel_cannot_access_the_module(): void
+    public function test_users_without_tribunal_permission_cannot_access_the_module(): void
     {
         $staffMember = User::factory()->staff()->create();
-        $administrator = User::factory()->administrator()->create();
-        $administrator->assignRole('administrator');
 
         $this->withSession(['mfa_verified' => true])
             ->actingAs($staffMember)
             ->get(route('tribunal.cases.index'))
             ->assertForbidden();
+    }
+
+    public function test_administrators_with_the_module_permission_see_and_can_open_the_tribunal_sidebar_link(): void
+    {
+        $this->seed(RoleSeeder::class);
+        $administrator = User::factory()->administrator()->create();
+        $administrator->assignRole('administrator');
+
+        $this->withSession(['mfa_verified' => true])
+            ->actingAs($administrator)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee(route('tribunal.cases.index'), false)
+            ->assertSee('Tribunal Module');
 
         $this->withSession(['mfa_verified' => true])
             ->actingAs($administrator)
             ->get(route('tribunal.cases.index'))
-            ->assertForbidden();
+            ->assertOk()
+            ->assertSee(route('tribunal.cases.index'), false)
+            ->assertSee('bg-inferno text-white', false);
     }
 
     public function test_tribunal_panel_can_create_a_case_with_reference_module_details(): void
@@ -88,6 +106,7 @@ class TribunalAccessTest extends TestCase
             'respondent_name' => 'Sample Student',
             'priority' => 'high',
             'status' => CaseStatus::UNDER_INFORMAL_DISCUSSION->value,
+            'is_formal_charge' => true,
         ]);
     }
 
@@ -116,18 +135,26 @@ class TribunalAccessTest extends TestCase
         Queue::fake();
 
         $panelMember = $this->createTribunalPanel();
+        $report = IncidentReport::factory()->formalCharge()->create([
+            'reporter_id' => $panelMember->id,
+            'student_id' => User::factory()->student()->create()->id,
+            'offense_id' => OffenseRule::factory()->minor()->create()->id,
+        ]);
+        $case = TribunalCase::factory()->create([
+            'incident_report_id' => $report->id,
+        ]);
 
         $response = $this->withSession(['mfa_verified' => true])
             ->actingAs($panelMember)
             ->postJson(route('tribunal.documents.upload'), [
                 'document' => UploadedFile::fake()->createWithContent('signed-resolution.pdf', '%PDF-1.4 test'),
-                'title' => 'Signed Resolution',
-                'description' => 'Final tribunal findings.',
+                'case_id' => $case->id,
             ]);
 
         $response->assertAccepted();
 
-        $case = TribunalCase::query()->findOrFail($response->json('case_id'));
+        $this->assertSame($case->id, $response->json('case_id'));
+        $case->refresh();
 
         $this->assertSame('tribunal', $case->document_disk);
         Storage::disk('tribunal')->assertExists($case->document_path);
@@ -154,6 +181,202 @@ class TribunalAccessTest extends TestCase
         ])->assertRedirect()->assertSessionHas('error');
 
         $this->assertSame(CaseStatus::UNDER_FORMAL_INVESTIGATION, $case->refresh()->status);
+    }
+
+    public function test_tribunal_lists_only_major_cases_and_formal_charges_and_blocks_minor_case_routes(): void
+    {
+        $panelMember = $this->createTribunalPanel();
+        $student = User::factory()->student()->create();
+        $reporter = User::factory()->staff()->create();
+        $minorOffense = OffenseRule::factory()->minor()->create();
+        $majorOffense = OffenseRule::factory()->create(['severity_level' => 'Major']);
+        $severeOffense = OffenseRule::factory()->severe()->create();
+
+        $minorReport = IncidentReport::factory()->quickLog()->create([
+            'reporter_id' => $reporter->id,
+            'student_id' => $student->id,
+            'offense_id' => $minorOffense->id,
+        ]);
+        $majorReport = IncidentReport::factory()->quickLog()->create([
+            'reporter_id' => $reporter->id,
+            'student_id' => $student->id,
+            'offense_id' => $majorOffense->id,
+        ]);
+        $formalCharge = IncidentReport::factory()->formalCharge()->create([
+            'reporter_id' => $reporter->id,
+            'student_id' => $student->id,
+            'offense_id' => $minorOffense->id,
+        ]);
+        $majorSeverityReport = IncidentReport::factory()->quickLog()->create([
+            'reporter_id' => $reporter->id,
+            'student_id' => $student->id,
+            'offense_id' => $minorOffense->id,
+            'severity' => 'Major',
+        ]);
+        $severeQuickLog = IncidentReport::factory()->quickLog()->create([
+            'reporter_id' => $reporter->id,
+            'student_id' => $student->id,
+            'offense_id' => $severeOffense->id,
+        ]);
+
+        $minorCase = TribunalCase::factory()->create([
+            'case_number' => 'CSU-MINOR-0001',
+            'incident_report_id' => $minorReport->id,
+        ]);
+        $majorCase = TribunalCase::factory()->create([
+            'case_number' => 'CSU-MAJOR-0001',
+            'incident_report_id' => $majorReport->id,
+        ]);
+        $formalCase = TribunalCase::factory()->create([
+            'case_number' => 'CSU-FORMAL-0001',
+            'incident_report_id' => $formalCharge->id,
+        ]);
+        $majorSeverityCase = TribunalCase::factory()->create([
+            'case_number' => 'CSU-MAJOR-SEVERITY-0001',
+            'incident_report_id' => $majorSeverityReport->id,
+        ]);
+        $severeCase = TribunalCase::factory()->create([
+            'case_number' => 'CSU-SEVERE-0001',
+            'incident_report_id' => $severeQuickLog->id,
+        ]);
+        $unclassifiedCase = TribunalCase::factory()->create([
+            'case_number' => 'CSU-UNCLASSIFIED-0001',
+        ]);
+        $majorRecord = ViolationRecord::factory()->create([
+            'offense_id' => $majorOffense->id,
+            'investigation_type' => 'Tribunal',
+            'status' => 'Pending Review',
+        ]);
+        $minorRecord = ViolationRecord::factory()->create([
+            'offense_id' => $minorOffense->id,
+            'investigation_type' => 'Tribunal',
+            'status' => 'Pending Review',
+        ]);
+        $majorViolationCase = TribunalCase::factory()->create([
+            'case_number' => 'CSU-MAJOR-RECORD-0001',
+            'violation_record_id' => $majorRecord->id,
+        ]);
+        $minorViolationCase = TribunalCase::factory()->create([
+            'case_number' => 'CSU-MINOR-RECORD-0001',
+            'violation_record_id' => $minorRecord->id,
+        ]);
+
+        $this->withSession(['mfa_verified' => true])
+            ->actingAs($panelMember)
+            ->get(route('tribunal.cases.index'))
+            ->assertOk()
+            ->assertSee($majorCase->case_number)
+            ->assertSee($majorViolationCase->case_number)
+            ->assertSee($majorSeverityCase->case_number)
+            ->assertSee($formalCase->case_number)
+            ->assertDontSee($minorCase->case_number)
+            ->assertDontSee($minorViolationCase->case_number)
+            ->assertDontSee($severeCase->case_number)
+            ->assertDontSee($unclassifiedCase->case_number);
+
+        $this->get(route('tribunal.cases.show', $minorCase))->assertNotFound();
+        $this->get(route('tribunal.cases.document', $minorCase))->assertNotFound();
+        $this->patch(route('tribunal.cases.updateStatus', $minorCase), [
+            'status' => CaseStatus::UNDER_FORMAL_INVESTIGATION->value,
+        ])->assertNotFound();
+
+        $this->seed(RoleSeeder::class);
+        $administrator = User::factory()->administrator()->create();
+        $administrator->assignRole('administrator');
+
+        Livewire::actingAs($administrator)
+            ->test(Dashboard::class)
+            ->assertSet('pendingCasesCount', 1)
+            ->assertDontSee($minorRecord->case_tracking_number);
+
+        Livewire::actingAs($administrator)
+            ->test(CaseManagement::class)
+            ->call('setTab', 'cases')
+            ->set('filterInvestigationType', 'Tribunal')
+            ->assertSee($majorRecord->case_tracking_number)
+            ->assertDontSee($minorRecord->case_tracking_number);
+    }
+
+    public function test_document_upload_cannot_create_or_attach_a_minor_case(): void
+    {
+        Storage::fake('tribunal');
+        Queue::fake();
+
+        $panelMember = $this->createTribunalPanel();
+        $student = User::factory()->student()->create();
+        $reporter = User::factory()->staff()->create();
+        $minorReport = IncidentReport::factory()->quickLog()->create([
+            'reporter_id' => $reporter->id,
+            'student_id' => $student->id,
+            'offense_id' => OffenseRule::factory()->minor()->create()->id,
+        ]);
+        $minorCase = TribunalCase::factory()->create([
+            'incident_report_id' => $minorReport->id,
+        ]);
+
+        $this->withSession(['mfa_verified' => true])
+            ->actingAs($panelMember)
+            ->postJson(route('tribunal.documents.upload'), [
+                'document' => UploadedFile::fake()->createWithContent('minor-evidence.pdf', '%PDF-1.4 test'),
+                'case_id' => $minorCase->id,
+            ])
+            ->assertNotFound();
+
+        $this->assertNull($minorCase->refresh()->document_path);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_admin_cannot_assign_a_minor_violation_to_the_tribunal(): void
+    {
+        $this->seed(RoleSeeder::class);
+        $administrator = User::factory()->administrator()->create();
+        $administrator->assignRole('administrator');
+        $minorRecord = ViolationRecord::factory()->create([
+            'offense_id' => OffenseRule::factory()->minor()->create()->id,
+            'investigation_type' => 'Summary',
+            'assigned_to_sdt' => false,
+        ]);
+
+        Livewire::actingAs($administrator)
+            ->test(CaseManagement::class)
+            ->call('openAssignSDTModal', $minorRecord->id)
+            ->set('selectedSDTMembers', ['member-1', 'member-2', 'member-3', 'member-4', 'member-5'])
+            ->call('assignSDT')
+            ->assertHasErrors('selectedSDTMembers');
+
+        $this->assertFalse($minorRecord->refresh()->assigned_to_sdt);
+        $this->assertDatabaseMissing('tribunal_cases', [
+            'case_number' => $minorRecord->case_tracking_number,
+        ]);
+    }
+
+    public function test_minor_quick_log_cannot_be_accepted_as_a_tribunal_case(): void
+    {
+        $this->seed(RoleSeeder::class);
+        $administrator = User::factory()->administrator()->create();
+        $administrator->assignRole('administrator');
+        $student = User::factory()->student()->create();
+        $reporter = User::factory()->staff()->create();
+        $minorReport = IncidentReport::factory()->quickLog()->create([
+            'reporter_id' => $reporter->id,
+            'student_id' => $student->id,
+            'offense_id' => OffenseRule::factory()->minor()->create()->id,
+        ]);
+
+        Livewire::actingAs($administrator)
+            ->test(CaseManagement::class)
+            ->call('openAcceptModal', $minorReport->id)
+            ->set('acceptInvestigationType', 'Tribunal')
+            ->call('acceptReport')
+            ->assertHasErrors('acceptInvestigationType');
+
+        $this->assertDatabaseMissing('violation_records', [
+            'student_id' => $student->id,
+            'offense_id' => $minorReport->offense_id,
+        ]);
+        $this->assertDatabaseMissing('tribunal_cases', [
+            'incident_report_id' => $minorReport->id,
+        ]);
     }
 
     public function test_tribunal_case_relationships_reach_the_student_and_offense_models(): void

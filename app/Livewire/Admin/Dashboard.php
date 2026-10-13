@@ -49,10 +49,26 @@ class Dashboard extends Component
 
     public function loadPendingCases(): void
     {
-        $this->pendingCasesCount = ViolationRecord::where('status', 'Pending Review')->count();
-
-        $this->pendingCases = ViolationRecord::with(['student', 'offenseRule', 'reporter'])
+        $pendingCases = ViolationRecord::query()
             ->where('status', 'Pending Review')
+            ->where(function ($query): void {
+                $query->whereNull('investigation_type')
+                    ->orWhere('investigation_type', '!=', 'Tribunal')
+                    ->orWhere(function ($tribunalQuery): void {
+                        $tribunalQuery->where('investigation_type', 'Tribunal')
+                            ->where(function ($eligibleQuery): void {
+                                $eligibleQuery
+                                    ->whereHas('offenseRule', fn ($offenseQuery) => $offenseQuery
+                                        ->whereRaw('LOWER(severity_level) = ?', ['major']))
+                                    ->orWhereHas('tribunalCase', fn ($tribunalCaseQuery) => $tribunalCaseQuery
+                                        ->forTribunal());
+                            });
+                    });
+            });
+
+        $this->pendingCasesCount = (clone $pendingCases)->count();
+
+        $this->pendingCases = $pendingCases->with(['student', 'offenseRule', 'reporter'])
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get()
