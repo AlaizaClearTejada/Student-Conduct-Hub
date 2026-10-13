@@ -12,7 +12,7 @@
         <div class="p-6 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
             <div>
                 <h3 class="text-lg font-semibold text-gray-900">Active Tribunal Cases</h3>
-                <p class="text-sm text-gray-500 mt-1">Confidential records for the Tribunal Panel.</p>
+                <p class="text-sm text-gray-500 mt-1">Confidential tribunal records managed by OSDW administrators.</p>
             </div>
             <a href="{{ route('tribunal.cases.create') }}" class="bg-mahogany hover:bg-black-cherry text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
                 + New Case

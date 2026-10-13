@@ -107,7 +107,7 @@ The UI implementation is in [`resources/views/student/offense-rules.blade.php`](
 2. [`LoginForm`](../app/Livewire/Forms/LoginForm.php) uses Laravel `Auth::attempt`, a configurable rate limiter, and writes success/failure/lockout events to `auth_audit_logs`.
 3. The login route also has `throttle:5,1`. The user session ID is regenerated after successful authentication.
 4. A user flagged `must_change_password` is sent to `/password/force-reset` before any dashboard. The forced-reset controller enforces its own policy, including a minimum 12-character password.
-5. If `User::hasMfaRequired()` returns true, login redirects to `/mfa/verify`. MFA-required users include administrator role members, `role_type` values `tribunal_panel` and `system_auditor`, and users with `mfa_enabled` set.
+5. If `User::hasMfaRequired()` returns true, login redirects to `/mfa/verify`. MFA-required users include administrator role members, `role_type` value `system_auditor`, and users with `mfa_enabled` set.
 6. MFA uses a six-digit OTP stored on the user, a 10-minute expiry and a maximum of three failed attempts. The OTP is mailed via `MfaOtpNotification`; verification state is stored as `mfa_verified` in the session and MFA attempts are audited.
 7. Otherwise, the role sends the user to the administrator, staff, or student dashboard.
 
@@ -120,7 +120,7 @@ For ordinary web requests, `bootstrap/app.php` appends `SetLocale`, `EnsurePassw
 | Administrator | `/admin/*` | `auth` + Spatie `role:administrator`. Can use the administration dashboard, user management, report/case inbox, audit logs, settings, and evidence downloads. |
 | Staff | `/staff/*` | `auth` + `role:staff\|administrator`. Staff can report incidents, manage the student roster and see their own report submissions. The report detail route additionally uses `can:view,report`. |
 | Student | `/student/*` | `auth` + `role:student`. Student pages query records for the authenticated student's ID; the view/answer policy checks ownership. JAM's POST endpoint is in this group. |
-| Tribunal panel | `/dashboard/tribunal/*` | `auth` + custom `tribunal` middleware. This middleware checks `users.role_type` for `tribunal_panel` or `admin`, rather than using the Spatie role middleware. |
+| OSDW Administrator | Tribunal case routes | `auth` + custom `tribunal` middleware, which checks the `access tribunal module` permission assigned to the administrator role. |
 
 Spatie middleware aliases (`role`, `permission`, `role_or_permission`) are registered in `bootstrap/app.php`; role and permission data uses `roles`, `permissions`, `model_has_roles`, `model_has_permissions`, and `role_has_permissions`. The `User` model also has a `role_type` column. These are two authorization-related representations: most route guards use Spatie roles, while MFA and the Tribunal gate also inspect `role_type`. Provisioning must keep the required values consistent.
 
@@ -171,7 +171,7 @@ The main UI logic lives in [`app/Livewire/Admin/CaseManagement.php`](../app/Live
 - The Tribunal case list first calls `TribunalCaseRouter` to create any missing links for active tribunal-severity reports and violation records.
 - Severity levels `Major` and `Severe` are considered tribunal-review levels by `OffenseRule::requiringTribunalReview()`.
 - Tribunal case status is a distinct enum progression: `under_informal_discussion` → `under_formal_investigation` → `resolution_drafted` → `case_resolved`. `TribunalCase::transitionTo()` rejects invalid jumps.
-- Tribunal panel can inspect linked incident/violation/evidence data, update status, upload a tribunal document, and view the document.
+- OSDW administrators can inspect linked incident/violation/evidence data, update status, upload a tribunal document, and view the document.
 - Uploads accepted by `TribunalDocumentController` are PDF/JPEG/PNG up to 20 MB, stored on the `tribunal` disk, and queued for OCR after commit.
 
 ### Appeal status vs appeal workflow

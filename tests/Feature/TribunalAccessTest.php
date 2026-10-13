@@ -20,32 +20,31 @@ use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class TribunalAccessTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_tribunal_panel_can_access_the_module_and_is_redirected_to_it_from_dashboard(): void
+    public function test_administrator_can_access_the_module_and_is_redirected_to_admin_dashboard(): void
     {
-        $panelMember = $this->createTribunalPanel();
+        $administrator = $this->createAdministrator();
 
-        $this->assertTrue($panelMember->canAccessTribunalModule());
+        $this->assertTrue($administrator->canAccessTribunalModule());
 
         $this->withSession(['mfa_verified' => true])
-            ->actingAs($panelMember)
+            ->actingAs($administrator)
             ->get(route('dashboard'))
-            ->assertRedirect(route('tribunal.cases.index'));
+            ->assertRedirect(route('admin.dashboard'));
 
         $this->withSession(['mfa_verified' => true])
-            ->actingAs($panelMember)
+            ->actingAs($administrator)
             ->get(route('tribunal.cases.index'))
             ->assertOk()
             ->assertSee('Tribunal Module')
             ->assertSee('+ New Case')
-            ->assertSee('bg-inferno text-white', false)
-            ->assertDontSee('Dashboard Overview')
-            ->assertDontSee('Staff & User Management');
+            ->assertSee('bg-inferno text-white', false);
     }
 
     public function test_users_without_tribunal_permission_cannot_access_the_module(): void
@@ -86,12 +85,12 @@ class TribunalAccessTest extends TestCase
             ->assertSee('bg-inferno text-white', false);
     }
 
-    public function test_tribunal_panel_can_create_a_case_with_reference_module_details(): void
+    public function test_administrator_can_create_a_case_with_reference_module_details(): void
     {
-        $panelMember = $this->createTribunalPanel();
+        $administrator = $this->createAdministrator();
 
         $this->withSession(['mfa_verified' => true])
-            ->actingAs($panelMember)
+            ->actingAs($administrator)
             ->get(route('tribunal.cases.create'))
             ->assertOk()
             ->assertSee('File a New Tribunal Case');
@@ -119,10 +118,10 @@ class TribunalAccessTest extends TestCase
 
     public function test_case_creation_rejects_invalid_status_values(): void
     {
-        $panelMember = $this->createTribunalPanel();
+        $administrator = $this->createAdministrator();
 
         $this->withSession(['mfa_verified' => true])
-            ->actingAs($panelMember)
+            ->actingAs($administrator)
             ->post(route('tribunal.cases.store'), [
                 'case_number' => 'TR-2026-INVALID',
                 'title' => 'Invalid case',
@@ -136,14 +135,14 @@ class TribunalAccessTest extends TestCase
         ]);
     }
 
-    public function test_tribunal_panel_can_upload_view_and_transition_a_case_document(): void
+    public function test_administrator_can_upload_view_and_transition_a_case_document(): void
     {
         Storage::fake('tribunal');
         Queue::fake();
 
-        $panelMember = $this->createTribunalPanel();
+        $administrator = $this->createAdministrator();
         $report = IncidentReport::factory()->formalCharge()->create([
-            'reporter_id' => $panelMember->id,
+            'reporter_id' => $administrator->id,
             'student_id' => User::factory()->student()->create()->id,
             'offense_id' => OffenseRule::factory()->minor()->create()->id,
         ]);
@@ -152,7 +151,7 @@ class TribunalAccessTest extends TestCase
         ]);
 
         $response = $this->withSession(['mfa_verified' => true])
-            ->actingAs($panelMember)
+            ->actingAs($administrator)
             ->postJson(route('tribunal.documents.upload'), [
                 'document' => UploadedFile::fake()->createWithContent('signed-resolution.pdf', '%PDF-1.4 test'),
                 'case_id' => $case->id,
@@ -192,7 +191,7 @@ class TribunalAccessTest extends TestCase
 
     public function test_tribunal_lists_only_major_cases_and_formal_charges_and_blocks_minor_case_routes(): void
     {
-        $panelMember = $this->createTribunalPanel();
+        $administrator = $this->createAdministrator();
         $student = User::factory()->student()->create();
         $reporter = User::factory()->staff()->create();
         $minorOffense = OffenseRule::factory()->minor()->create();
@@ -269,7 +268,7 @@ class TribunalAccessTest extends TestCase
         ]);
 
         $this->withSession(['mfa_verified' => true])
-            ->actingAs($panelMember)
+            ->actingAs($administrator)
             ->get(route('tribunal.cases.index'))
             ->assertOk()
             ->assertSee($majorCase->case_number)
@@ -309,7 +308,7 @@ class TribunalAccessTest extends TestCase
         Storage::fake('tribunal');
         Queue::fake();
 
-        $panelMember = $this->createTribunalPanel();
+        $administrator = $this->createAdministrator();
         $student = User::factory()->student()->create();
         $reporter = User::factory()->staff()->create();
         $minorReport = IncidentReport::factory()->quickLog()->create([
@@ -322,7 +321,7 @@ class TribunalAccessTest extends TestCase
         ]);
 
         $this->withSession(['mfa_verified' => true])
-            ->actingAs($panelMember)
+            ->actingAs($administrator)
             ->postJson(route('tribunal.documents.upload'), [
                 'document' => UploadedFile::fake()->createWithContent('minor-evidence.pdf', '%PDF-1.4 test'),
                 'case_id' => $minorCase->id,
@@ -404,56 +403,61 @@ class TribunalAccessTest extends TestCase
         $this->assertSame($offense->id, $case->incidentReport->offense->id);
     }
 
-    public function test_administrator_can_provision_a_tribunal_panel_user(): void
+    public function test_user_management_does_not_offer_a_separate_tribunal_role(): void
     {
         $this->seed(RoleSeeder::class);
-        $administrator = User::factory()->administrator()->create();
-        $administrator->assignRole('administrator');
+        $administrator = $this->createAdministrator();
+        $this->assertDatabaseMissing('roles', ['name' => 'tribunal']);
 
         Livewire::actingAs($administrator)
             ->test(UserManagement::class)
             ->call('openCreateModal')
-            ->assertSee('Tribunal Panel')
-            ->set('firstName', 'Tribunal')
-            ->set('lastName', 'Member')
-            ->set('email', 'tribunal.member@example.test')
-            ->set('password', 'secure-password-123')
-            ->set('role', 'tribunal')
-            ->call('createUser')
-            ->assertHasNoErrors();
-
-        $panelMember = User::query()->where('email', 'tribunal.member@example.test')->firstOrFail();
-
-        $this->assertSame('tribunal_panel', $panelMember->role_type);
-        $this->assertTrue($panelMember->canAccessTribunalModule());
-        $this->assertTrue($panelMember->can('access tribunal module'));
-
-        Livewire::actingAs($administrator)
-            ->test(UserManagement::class)
-            ->call('openEditModal', $panelMember->id)
-            ->set('role', 'staff')
-            ->call('updateUser')
-            ->assertHasNoErrors();
-
-        $this->assertSame('osdw_staff', $panelMember->refresh()->role_type);
-        $this->assertFalse($panelMember->canAccessTribunalModule());
+            ->assertSee('<option value="staff">Staff</option>', false)
+            ->assertSee('<option value="administrator">Administrator</option>', false)
+            ->assertDontSee('Tribunal Panel');
     }
 
-    private function createTribunalPanel(): User
+    public function test_legacy_tribunal_users_are_promoted_to_administrators_by_the_migration(): void
     {
+        $legacyRole = Role::create([
+            'name' => 'tribunal',
+            'guard_name' => 'web',
+        ]);
+        $user = User::factory()->create(['role_type' => 'tribunal_panel']);
+        $user->assignRole($legacyRole);
+
+        $migration = require database_path(
+            'migrations/2026_10_13_202958_remove_tribunal_panel_role_and_grant_access_to_administrators.php'
+        );
+        $migration->up();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $user = $user->fresh();
+
+        $this->assertSame('admin', $user->role_type);
+        $this->assertTrue($user->hasRole('administrator'));
+        $this->assertTrue($user->can('access tribunal module'));
+        $this->assertDatabaseMissing('roles', ['id' => $legacyRole->id]);
+        $this->assertDatabaseMissing('model_has_roles', ['role_id' => $legacyRole->id]);
+    }
+
+    private function createAdministrator(): User
+    {
+        $this->seed(RoleSeeder::class);
+
         $permission = Permission::firstOrCreate([
             'name' => 'access tribunal module',
             'guard_name' => 'web',
         ]);
         $role = Role::firstOrCreate([
-            'name' => 'tribunal',
+            'name' => 'administrator',
             'guard_name' => 'web',
         ]);
         $role->givePermissionTo($permission);
 
-        $panelMember = User::factory()->create(['role_type' => 'tribunal_panel']);
-        $panelMember->assignRole($role);
+        $administrator = User::factory()->administrator()->create();
+        $administrator->assignRole($role);
 
-        return $panelMember;
+        return $administrator;
     }
 }

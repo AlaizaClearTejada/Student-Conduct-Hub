@@ -26,7 +26,7 @@
                 <span class="text-indigo-600 font-bold">Q:</span> What happens when a case is handled by the Tribunal?
             </h4>
             <p class="text-sm text-gray-600 ml-6">
-                The Tribunal Panel investigates the case on their module. Once they are finished, they update their case status to <strong>Case Resolved</strong>. This automatically updates the main Admin Case tracker to <strong>Under Investigation</strong> so the Admin can proceed with applying the official sanction.
+                OSDW administrators investigate cases in the Tribunal Module. Once the hearing is complete, they update the case status, which synchronizes the Admin Case tracker so the administrator can apply the official sanction.
             </p>
         </div>
 

@@ -24,8 +24,8 @@
             <div class="h-16 flex items-center gap-3 px-4 border-b border-black-cherry">
                 <img src="{{ asset('LOGO/csu.png') }}" alt="CSU Logo" class="h-10 w-10 object-contain">
                 <div>
-                    <h1 class="text-sm font-bold text-white">{{ auth()->user()?->role_type === 'tribunal_panel' ? 'SCMS Tribunal' : 'SCMS Admin' }}</h1>
-                    <p class="text-xs text-gray-300">{{ auth()->user()?->role_type === 'tribunal_panel' ? 'Tribunal Panel Portal' : 'Administrator Portal' }}</p>
+                    <h1 class="text-sm font-bold text-white">SCMS Admin</h1>
+                    <p class="text-xs text-gray-300">OSDW Administrator Portal</p>
                 </div>
             </div>
 

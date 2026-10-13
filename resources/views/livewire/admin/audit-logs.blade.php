@@ -44,15 +44,15 @@
             </div>
         </div>
 
-        <!-- User Filter & Clear -->
+        <!-- Role Filter & Clear -->
         <div class="flex flex-col md:flex-row md:items-end gap-4 mt-4">
             <div class="flex-1">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Filter by User</label>
-                <select wire:model.live="userId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-inferno focus:border-inferno">
-                    <option value="">All Users</option>
-                    @foreach($users as $user)
-                        <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
-                    @endforeach
+                <label class="block text-sm font-medium text-gray-700 mb-1">Filter by User Role</label>
+                <select wire:model.live="roleFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-inferno focus:border-inferno">
+                    <option value="">All Roles</option>
+                    <option value="administrator">Administrator</option>
+                    <option value="staff">Staff</option>
+                    <option value="student">Student</option>
                 </select>
             </div>
             <button wire:click="clearFilters" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">

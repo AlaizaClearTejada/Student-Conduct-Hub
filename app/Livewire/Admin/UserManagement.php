@@ -8,13 +8,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Livewire\WithPagination;
-use Spatie\Permission\Models\Role;
 
 class UserManagement extends Component
 {
-    use WithPagination;
-
     #[Url]
     public string $search = '';
 
@@ -57,21 +53,6 @@ class UserManagement extends Component
         }
     }
 
-    public function updatingSearch(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingRoleFilter(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingStatusFilter(): void
-    {
-        $this->resetPage();
-    }
-
     public function openCreateModal(): void
     {
         $this->reset(['name', 'firstName', 'lastName', 'email', 'password', 'role', 'editingUserId']);
@@ -96,8 +77,7 @@ class UserManagement extends Component
         $this->lastName = $user->last_name ?: str($user->name)->afterLast(' ')->toString();
         $this->email = $user->email;
         $this->password = '';
-        $this->role = $user->getRoleNames()->first()
-            ?? ($user->role_type === 'tribunal_panel' ? 'tribunal' : 'staff');
+        $this->role = $user->getRoleNames()->first() ?? 'staff';
         $this->showCreateModal = false;
         $this->showEditModal = true;
         $this->resetValidation();
@@ -112,7 +92,7 @@ class UserManagement extends Component
             'lastName' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8'],
-            'role' => ['required', Rule::in(['administrator', 'staff', 'tribunal'])],
+            'role' => ['required', Rule::in(['administrator', 'staff'])],
         ]);
 
         if ($user->id === auth()->id() && $validated['role'] !== 'administrator') {
@@ -159,7 +139,7 @@ class UserManagement extends Component
             'lastName' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'min:8'],
-            'role' => ['required', Rule::in(['administrator', 'staff', 'tribunal'])],
+            'role' => ['required', Rule::in(['administrator', 'staff'])],
         ]);
 
         $attributes = [
@@ -198,7 +178,6 @@ class UserManagement extends Component
         return match ($role) {
             'administrator' => 'admin',
             'staff' => 'osdw_staff',
-            'tribunal' => 'tribunal_panel',
         };
     }
 
@@ -341,8 +320,7 @@ class UserManagement extends Component
             ->orderBy('created_at', 'desc');
 
         return view('livewire.admin.user-management', [
-            'users' => $query->paginate(10),
-            'roles' => Role::whereIn('name', ['administrator', 'staff', 'tribunal'])->get(),
+            'users' => $query->get(),
         ])->layout('layouts.admin', ['title' => 'Staff & User Management']);
     }
 }

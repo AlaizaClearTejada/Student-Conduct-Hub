@@ -13,17 +13,17 @@ To protect confidential hearing records and restrict sensitive tribunal operatio
 | Account Type | Permissions & Access Scope | Tribunal Module Visibility |
 | :--- | :--- | :--- |
 | **Ordinary OSDW Staff** | Access limited to general student records, student list roster, monthly incident reports, and student clearance processing. | ❌ **Hidden / Restricted** |
-| **Tribunal Panel Member** | Full access to confidential tribunal hearing files, resolution uploads, OCR text extraction, and case status transitions (`role_type: tribunal_panel`). | ✅ **Visible in Sidebar** |
+| **OSDW Administrator** | Full access to confidential tribunal hearing files, resolution uploads, OCR text extraction, and case status transitions through the `access tribunal module` permission. | ✅ **Visible in Sidebar** |
 
 ### Implementation Details
 
-* **Route Authorization Middleware:** [`App\Http\Middleware\EnsureTribunalAccess`](file:///c:/MyXampp/htdocs/student-conduct-management-system/app/Http/Middleware/EnsureTribunalAccess.php) checks `auth()->user()->role_type === 'tribunal_panel'`. Requests from unauthorized users result in an HTTP `403 Forbidden` response.
+* **Route Authorization Middleware:** `App\Http\Middleware\EnsureTribunalAccess` checks the `access tribunal module` permission. The permission is assigned to the administrator role; unauthorized requests result in an HTTP `403 Forbidden` response.
 * **Isolated Route Group:** Tribunal routes are registered in [`routes/web.php`](file:///c:/MyXampp/htdocs/student-conduct-management-system/routes/web.php#L123-L130) under the `dashboard/tribunal` prefix protected by the `tribunal` middleware alias.
 * **Sidebar Conditional UI Rendering:** In [`resources/views/layouts/admin.blade.php`](file:///c:/MyXampp/htdocs/student-conduct-management-system/resources/views/layouts/admin.blade.php#L74-L82), the **Tribunal Module** navigation tab is wrapped inside:
   ```blade
-  @if(auth()->check() && auth()->user()->role_type === 'tribunal_panel')
+  @can('access tribunal module')
       <a href="{{ route('tribunal.cases.index') }}" class="...">Tribunal Module</a>
-  @endif
+  @endcan
   ```
 
 ---
