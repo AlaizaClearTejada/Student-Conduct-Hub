@@ -74,9 +74,13 @@
                                     <span class="text-green-800 font-medium block">
                                         Verified: <span class="font-bold">{{ $studentInitials }}</span> - {{ $studentProgram }}
                                     </span>
-                                    <span class="text-green-700 text-xs mt-0.5 block">
-                                        This will be recorded as the student's <strong>{{ $offenseOrdinal }} offense</strong>.
-                                    </span>
+                                    @if($offensePreview)
+                                        <span class="text-green-700 text-xs mt-0.5 block">
+                                            This will be recorded as the student's <strong>{{ $offenseOrdinal }} offense</strong>.
+                                        </span>
+                                    @else
+                                        <span class="text-green-700 text-xs mt-0.5 block">Select an offense to view this student's history and next sanction tier.</span>
+                                    @endif
                                 </div>
                             </div>
                         @elseif($studentId && !$studentVerified)
@@ -105,7 +109,7 @@
                         </label>
                         <select 
                             id="offenseId" 
-                            wire:model="offenseId"
+                            wire:model.live="offenseId"
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#590004] focus:border-transparent transition-all @error('offenseId') border-red-500 @enderror"
                         >
                             <option value="">Select a minor offense...</option>
@@ -119,6 +123,10 @@
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
+
+                    @if($offensePreview)
+                        @include('staff.partials.offense-progression-preview', ['offensePreview' => $offensePreview])
+                    @endif
 
                     <!-- Brief Description -->
                     <div>

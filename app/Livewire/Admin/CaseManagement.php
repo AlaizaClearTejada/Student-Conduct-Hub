@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\ViolationRecord;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
@@ -49,6 +50,9 @@ class CaseManagement extends Component
 
     public $sourceReport;
 
+    /** @var list<array<string, mixed>> */
+    public array $selectedOffenseHistory = [];
+
     public $showAssignSDTModal = false;
 
     public $showResolveCaseModal = false;
@@ -82,6 +86,10 @@ class CaseManagement extends Component
     public $appliedSanction = '';
 
     public $sanctionCaseContext = [];
+
+    public int $appealOffenseCount = 1;
+
+    public string $appealDecisionNotes = '';
 
     // Send Notice Modal
     public $showSendNoticeModal = false;
@@ -178,6 +186,12 @@ class CaseManagement extends Component
         $case->logAccess(Auth::id(), 'OSDW Case Review');
 
         $this->selectedCase = $case;
+        $this->appealOffenseCount = (int) ($case->offense_count ?? 1);
+        $this->appealDecisionNotes = '';
+        $this->selectedOffenseHistory = $case->offenseRule
+            ? app(\App\Services\OffenseProgressionService::class)
+                ->preview($case->student_id, $case->offenseRule)['records']
+            : [];
 
         // Find source IncidentReport if case was opened from one (for evidence fallback)
         $this->sourceReport = null;
@@ -193,6 +207,64 @@ class CaseManagement extends Component
     {
         $this->selectedCase = null;
         $this->sourceReport = null;
+        $this->reset(['appealOffenseCount', 'appealDecisionNotes', 'selectedOffenseHistory']);
+    }
+
+    public function approveAppeal(): void
+    {
+        abort_unless(Auth::user()?->hasRole('administrator'), 403);
+
+        $this->validate([
+            'appealOffenseCount' => 'required|integer|min:1|max:1000',
+            'appealDecisionNotes' => 'required|string|min:10|max:2000',
+        ]);
+
+        $case = DB::transaction(function (): ViolationRecord {
+            $case = ViolationRecord::query()
+                ->with('offenseRule')
+                ->lockForUpdate()
+                ->findOrFail($this->selectedCase->id);
+
+            if ($case->status !== 'Appealed' || $case->appeal_decision !== null) {
+                abort(422, 'Only undecided appeals can be approved.');
+            }
+
+            $previousCount = (int) ($case->offense_count ?? 1);
+            $offense = $case->offenseRule;
+            $sanction = $offense?->getSanctionForOffenseCount($this->appealOffenseCount)
+                ?? $offense?->standard_sanction;
+
+            $case->update([
+                'offense_count' => $this->appealOffenseCount,
+                'offense_count_adjustment' => $this->appealOffenseCount - $previousCount,
+                'applied_sanction' => $sanction,
+                'appeal_decision' => 'Approved',
+                'appeal_decision_notes' => $this->appealDecisionNotes,
+                'appeal_decided_by' => Auth::id(),
+                'appeal_decided_at' => now(),
+            ]);
+
+            CaseWorkflowLog::logAction(
+                $case->id,
+                Auth::id(),
+                'Status Changed',
+                "Appeal approved. Offense count adjusted from {$previousCount} to {$this->appealOffenseCount}.",
+                [
+                    'previous_offense_count' => $previousCount,
+                    'adjusted_offense_count' => $this->appealOffenseCount,
+                    'applied_sanction' => $sanction,
+                    'decision_notes' => $this->appealDecisionNotes,
+                ]
+            );
+
+            return $case->fresh(['offenseRule', 'student', 'reporter']) ?? $case;
+        });
+
+        $this->selectedCase = $case;
+        $this->selectedOffenseHistory = app(\App\Services\OffenseProgressionService::class)
+            ->preview($case->student_id, $case->offenseRule)['records'];
+        $this->appealDecisionNotes = '';
+        session()->flash('success', 'Appeal approved and offense progression updated.');
     }
 
     public function openAssignSDTModal($caseId): void
@@ -430,29 +502,30 @@ class CaseManagement extends Component
         $investigationType = $isTribunalCase ? 'Tribunal' : $this->acceptInvestigationType;
         $tribunalCase = TribunalCase::where('incident_report_id', $report->id)->first();
 
-        // Count prior offenses to determine progressive sanction
-        $offenseCount = ViolationRecord::where('student_id', $report->student_id)
-            ->where('offense_id', $report->offense_id)
-            ->count() + 1;
+        $record = DB::transaction(function () use ($report, $offense, $tribunalCase, $investigationType): ViolationRecord {
+            User::query()->whereKey($report->student_id)->lockForUpdate()->firstOrFail();
 
-        $appliedSanction = $offense?->getSanctionForOffenseCount($offenseCount)
-            ?? $offense?->standard_sanction
-            ?? '';
+            $offenseCount = app(\App\Services\OffenseProgressionService::class)
+                ->nextCount($report->student_id, $report->offense_id);
+            $appliedSanction = $offense?->getSanctionForOffenseCount($offenseCount)
+                ?? $offense?->standard_sanction
+                ?? '';
 
-        $record = ViolationRecord::create([
-            'case_tracking_number' => $tribunalCase?->case_number ?? ViolationRecord::generateCaseTrackingNumber(),
-            'student_id' => $report->student_id,
-            'offense_id' => $report->offense_id,
-            'offense_count' => $offenseCount,
-            'applied_sanction' => $appliedSanction,
-            'reported_by' => $report->reporter_id,
-            'status' => 'Pending Review',
-            'investigation_type' => $investigationType,
-            'incident_description' => $report->description,
-            'date_of_incident' => $this->acceptDateOfIncident,
-            'charge_filed_date' => now()->toDateString(),
-            'answer_deadline' => now()->addWeekdays(5)->toDateString(),
-        ]);
+            return ViolationRecord::create([
+                'case_tracking_number' => $tribunalCase?->case_number ?? ViolationRecord::generateCaseTrackingNumber(),
+                'student_id' => $report->student_id,
+                'offense_id' => $report->offense_id,
+                'offense_count' => $offenseCount,
+                'applied_sanction' => $appliedSanction,
+                'reported_by' => $report->reporter_id,
+                'status' => 'Pending Review',
+                'investigation_type' => $investigationType,
+                'incident_description' => $report->description,
+                'date_of_incident' => $this->acceptDateOfIncident,
+                'charge_filed_date' => now()->toDateString(),
+                'answer_deadline' => now()->addWeekdays(5)->toDateString(),
+            ]);
+        });
 
         // Transfer evidence from IncidentReport to CaseEvidence
         $tribunalDocumentPath = $report->evidence_path;

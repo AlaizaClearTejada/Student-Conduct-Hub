@@ -6,6 +6,7 @@ use App\Events\IncidentReported;
 use App\Models\IncidentReport;
 use App\Models\OffenseRule;
 use App\Models\User;
+use App\Services\OffenseProgressionService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
@@ -36,6 +37,11 @@ class FormalChargeForm extends Component
     public bool $studentVerified = false;
 
     public int $offenseCount = 1;
+
+    public ?string $nextSanction = null;
+
+    /** @var array<string, mixed> */
+    public array $offensePreview = [];
 
     // Incident details
     public ?int $offenseId = null;
@@ -84,6 +90,10 @@ class FormalChargeForm extends Component
         $this->yearLevel = '';
         $this->section = '';
         $this->email = '';
+        $this->offenseId = null;
+        $this->offensePreview = [];
+        $this->offenseCount = 1;
+        $this->nextSanction = null;
 
         if (empty(trim($this->studentIdInput))) {
             return;
@@ -101,12 +111,38 @@ class FormalChargeForm extends Component
             $this->section = $student->section ?? '';
             $this->email = $student->email;
 
-            // Calculate offense count (previous reports + 1)
-            $previousCount = IncidentReport::where('student_id', $student->id)->count();
-            $this->offenseCount = $previousCount + 1;
-
             $this->studentVerified = true;
         }
+    }
+
+    public function updatedOffenseId(): void
+    {
+        $this->refreshOffenseProgression();
+    }
+
+    private function refreshOffenseProgression(): void
+    {
+        $this->offensePreview = [];
+        $this->offenseCount = 1;
+        $this->nextSanction = null;
+
+        if (! $this->studentVerified || ! $this->studentDbId || ! $this->offenseId) {
+            return;
+        }
+
+        $offense = OffenseRule::query()
+            ->active()
+            ->requiringTribunalReview()
+            ->find($this->offenseId);
+
+        if ($offense === null) {
+            return;
+        }
+
+        $preview = app(OffenseProgressionService::class)->preview($this->studentDbId, $offense);
+        $this->offenseCount = $preview['next_count'];
+        $this->nextSanction = $preview['next_sanction'];
+        $this->offensePreview = $preview;
     }
 
     /**
@@ -140,6 +176,11 @@ class FormalChargeForm extends Component
             'evidenceFile.max' => 'Evidence file must not exceed 10MB.',
             'certification.accepted' => 'You must certify this report before submitting.',
         ]);
+
+        OffenseRule::query()
+            ->active()
+            ->requiringTribunalReview()
+            ->findOrFail($this->offenseId);
 
         // Store evidence outside public web root
         $evidencePath = $this->evidenceFile->store('confidential_evidence');

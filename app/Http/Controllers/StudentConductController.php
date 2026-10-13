@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CaseWorkflowLog;
 use App\Models\OffenseRule;
 use App\Models\ViolationRecord;
+use App\Services\OffenseProgressionService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,6 +41,10 @@ class StudentConductController extends Controller
         $pendingReviewCount = $violationRecords->whereIn('status', ['Pending Review', 'Pending', 'Notice Sent'])->count();
         $resolvedCount = $violationRecords->whereIn('status', ['Resolved', 'Dismissed', 'Warning'])->count();
         $appealedCount = $violationRecords->where('status', 'Appealed')->count();
+        $offenseTracker = app(OffenseProgressionService::class)->trackerForStudent(Auth::user());
+        $activeCountsByCategory = $offenseTracker
+            ->groupBy(fn (array $entry): string => $entry['offense']->category)
+            ->map(fn ($entries): int => $entries->sum('active_count'));
 
         return view('student.dashboard', compact(
             'violationRecords',
@@ -47,7 +52,9 @@ class StudentConductController extends Controller
             'activeSanctionsCount',
             'pendingReviewCount',
             'resolvedCount',
-            'appealedCount'
+            'appealedCount',
+            'offenseTracker',
+            'activeCountsByCategory'
         ));
     }
 

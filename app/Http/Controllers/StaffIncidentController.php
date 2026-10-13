@@ -8,7 +8,9 @@ use App\Models\OffenseRule;
 use App\Models\User;
 use App\Models\ViolationRecord;
 use App\Services\DecisionSupportService;
+use App\Services\OffenseProgressionService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -75,6 +77,19 @@ class StaffIncidentController extends Controller
         return view('staff.report-create', compact('students', 'offenseRules'));
     }
 
+    public function offenseHistory(Request $request, OffenseProgressionService $progression): JsonResponse
+    {
+        $validated = $request->validate([
+            'student_id' => 'required|integer|exists:users,id',
+            'offense_id' => 'required|integer|exists:offense_rules,id',
+        ]);
+
+        $student = User::role('student')->findOrFail($validated['student_id']);
+        $offense = OffenseRule::query()->active()->findOrFail($validated['offense_id']);
+
+        return response()->json($progression->preview($student->id, $offense));
+    }
+
     /**
      * Store a newly created incident report in storage.
      *
@@ -136,8 +151,10 @@ class StaffIncidentController extends Controller
 
         // Eager load relationships
         $report->load(['student', 'offense', 'reporter']);
+        $offensePreview = app(OffenseProgressionService::class)
+            ->preview($report->student_id, $report->offense);
 
-        return view('staff.report-show', compact('report'));
+        return view('staff.report-show', compact('report', 'offensePreview'));
     }
 
     /**

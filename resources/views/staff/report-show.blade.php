@@ -74,6 +74,8 @@
                     </div>
                 </div>
 
+                @include('staff.partials.offense-progression-preview', ['offensePreview' => $offensePreview])
+
                 @if($report->evidence_path)
                     <div>
                         <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Evidence Attached</h3>

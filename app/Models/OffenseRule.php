@@ -96,11 +96,10 @@ class OffenseRule extends Model
      */
     public function getSanctionForOffenseCount(int $offenseCount): ?string
     {
-        return match ($offenseCount) {
-            1 => $this->first_offense_sanction,
-            2 => $this->second_offense_sanction,
-            3 => $this->third_offense_sanction,
-            default => null,
+        return match (true) {
+            $offenseCount <= 1 => $this->first_offense_sanction,
+            $offenseCount === 2 => $this->second_offense_sanction,
+            $offenseCount >= 3 => $this->third_offense_sanction,
         };
     }
 

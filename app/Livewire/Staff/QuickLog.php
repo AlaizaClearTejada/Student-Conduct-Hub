@@ -6,6 +6,7 @@ use App\Events\IncidentReported;
 use App\Models\IncidentReport;
 use App\Models\OffenseRule;
 use App\Models\User;
+use App\Services\OffenseProgressionService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
@@ -37,6 +38,11 @@ class QuickLog extends Component
 
     public string $offenseOrdinal = '1st';
 
+    public ?string $nextSanction = null;
+
+    /** @var array<string, mixed> */
+    public array $offensePreview = [];
+
     // Available minor offenses (only)
     public $minorOffenses = [];
 
@@ -58,7 +64,18 @@ class QuickLog extends Component
     public function openModal(): void
     {
         $this->showModal = true;
-        $this->reset(['studentId', 'offenseId', 'description', 'studentInitials', 'studentProgram', 'studentVerified']);
+        $this->reset([
+            'studentId',
+            'offenseId',
+            'description',
+            'studentInitials',
+            'studentProgram',
+            'studentVerified',
+            'offenseCount',
+            'offenseOrdinal',
+            'nextSanction',
+            'offensePreview',
+        ]);
     }
 
     /**
@@ -67,7 +84,18 @@ class QuickLog extends Component
     public function closeModal(): void
     {
         $this->showModal = false;
-        $this->reset(['studentId', 'offenseId', 'description', 'studentInitials', 'studentProgram', 'studentVerified']);
+        $this->reset([
+            'studentId',
+            'offenseId',
+            'description',
+            'studentInitials',
+            'studentProgram',
+            'studentVerified',
+            'offenseCount',
+            'offenseOrdinal',
+            'nextSanction',
+            'offensePreview',
+        ]);
         $this->resetErrorBag();
     }
 
@@ -79,6 +107,11 @@ class QuickLog extends Component
         $this->studentVerified = false;
         $this->studentInitials = '';
         $this->studentProgram = '';
+        $this->offenseId = '';
+        $this->offensePreview = [];
+        $this->offenseCount = 1;
+        $this->offenseOrdinal = '1st';
+        $this->nextSanction = null;
 
         if (empty($this->studentId)) {
             return;
@@ -99,13 +132,43 @@ class QuickLog extends Component
             // Get program (you may need to adjust this based on your User model)
             $this->studentProgram = $student->program ?? 'Unknown Program';
 
-            // Calculate offense count (previous reports + 1)
-            $previousCount = IncidentReport::where('student_id', $student->id)->count();
-            $this->offenseCount = $previousCount + 1;
-            $this->offenseOrdinal = $this->formatOrdinal($this->offenseCount);
-
             $this->studentVerified = true;
         }
+    }
+
+    public function updatedOffenseId(): void
+    {
+        $this->refreshOffenseProgression();
+    }
+
+    private function refreshOffenseProgression(): void
+    {
+        $this->offensePreview = [];
+        $this->offenseCount = 1;
+        $this->offenseOrdinal = '1st';
+        $this->nextSanction = null;
+
+        if (! $this->studentVerified || ! $this->offenseId) {
+            return;
+        }
+
+        $student = User::role('student')
+            ->where('student_id', $this->studentId)
+            ->first();
+        $offense = OffenseRule::query()
+            ->active()
+            ->where('gravity', 'minor')
+            ->find($this->offenseId);
+
+        if ($student === null || $offense === null) {
+            return;
+        }
+
+        $preview = app(OffenseProgressionService::class)->preview($student->id, $offense);
+        $this->offenseCount = $preview['next_count'];
+        $this->offenseOrdinal = $this->formatOrdinal($this->offenseCount);
+        $this->nextSanction = $preview['next_sanction'];
+        $this->offensePreview = $preview;
     }
 
     private function formatOrdinal(int $number): string
@@ -133,7 +196,10 @@ class QuickLog extends Component
                 'regex:/^\d{2}-\d{5}$/',
                 Rule::exists('users', 'student_id')->where('role_type', 'student'),
             ],
-            'offenseId' => ['required', 'exists:offense_rules,id'],
+            'offenseId' => [
+                'required',
+                Rule::exists('offense_rules', 'id')->where('gravity', 'minor')->where('is_active', true),
+            ],
             'description' => ['required', 'string', 'min:10'],
         ], [
             'studentId.regex' => 'Student ID must follow the format 00-00000.',

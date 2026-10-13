@@ -49,7 +49,11 @@
                             <div class="flex-1">
                                 <span class="text-green-800 font-medium block">Identity Verified: <strong>{{ $studentName }}</strong></span>
                                 <span class="text-green-700 text-xs mt-0.5 block">
-                                    This will be recorded as the student's <strong>{{ \Illuminate\Support\Number::ordinal($offenseCount) }} offense</strong>.
+                                    @if($offensePreview)
+                                        This will be recorded as the student's <strong>{{ $offensePreview['next_level'] }}</strong>.
+                                    @else
+                                        Select an offense to view this student's history and next sanction tier.
+                                    @endif
                                 </span>
                             </div>
                         </div>
@@ -181,7 +185,7 @@
                     Select Major Offense <span class="text-[#a50104]">*</span>
                 </label>
                 <select
-                    wire:model="offenseId"
+                    wire:model.live="offenseId"
                     id="offenseId"
                     class="w-full px-4 py-3 rounded-lg border @error('offenseId') border-[#a50104] bg-red-50 @else border-gray-300 bg-white @enderror focus:ring-2 focus:ring-[#590004] focus:border-[#590004] transition-colors text-gray-900"
                 >
@@ -195,6 +199,9 @@
                 @error('offenseId')
                     <p class="mt-1 text-xs font-bold text-[#a50104]">{{ $message }}</p>
                 @enderror
+                @if($offensePreview)
+                    @include('staff.partials.offense-progression-preview', ['offensePreview' => $offensePreview])
+                @endif
             </div>
 
             {{-- Description --}}

@@ -74,6 +74,7 @@ Route::middleware(['auth', 'role:staff|administrator'])->prefix('staff')->name('
     Route::get('/formal-charge', fn () => view('staff.formal-charge'))->name('formal-charge');
     Route::get('/report/create', [\App\Http\Controllers\StaffIncidentController::class, 'create'])->name('report.create');
     Route::post('/report', [\App\Http\Controllers\StaffIncidentController::class, 'store'])->name('report.store');
+    Route::get('/offense-history', [\App\Http\Controllers\StaffIncidentController::class, 'offenseHistory'])->name('offense-history');
 
     // Student Registration Management (Page-based with breadcrumbs)
     Route::get('/students', fn () => view('staff.students.index'))->name('students');

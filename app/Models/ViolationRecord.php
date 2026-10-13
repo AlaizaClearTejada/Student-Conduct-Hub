@@ -22,7 +22,12 @@ class ViolationRecord extends Model
         'student_id',
         'offense_id',
         'offense_count',
+        'offense_count_adjustment',
         'applied_sanction',
+        'appeal_decision',
+        'appeal_decision_notes',
+        'appeal_decided_by',
+        'appeal_decided_at',
         'reported_by',
         'status',
         'investigation_type',
@@ -82,6 +87,7 @@ class ViolationRecord extends Model
             'sanction_imposed_at' => 'datetime',
             'sanction_effective_at' => 'datetime',
             'notice_sent_at' => 'datetime',
+            'appeal_decided_at' => 'datetime',
             'conference_date' => 'datetime',
             'conference_held_at' => 'datetime',
         ];
@@ -133,6 +139,11 @@ class ViolationRecord extends Model
     public function noticeSender(): BelongsTo
     {
         return $this->belongsTo(User::class, 'notice_sent_by');
+    }
+
+    public function appealDecisionMaker(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'appeal_decided_by');
     }
 
     /**

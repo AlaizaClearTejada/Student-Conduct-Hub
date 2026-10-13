@@ -58,6 +58,8 @@
                     @enderror
                 </div>
 
+                <div id="offense-history-preview" data-history-url="{{ route('staff.offense-history') }}" aria-live="polite"></div>
+
                 <div>
                     <label for="description" class="block text-sm font-bold text-gray-700 mb-2">
                         Incident Description <span class="text-[#a50104]">*</span>
@@ -202,4 +204,60 @@
         </div>
 
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const studentSelect = document.getElementById('student_id');
+            const offenseSelect = document.getElementById('offense_id');
+            const preview = document.getElementById('offense-history-preview');
+
+            const showMessage = (message, className = 'text-gray-600') => {
+                preview.replaceChildren();
+                const paragraph = document.createElement('p');
+                paragraph.className = `rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm ${className}`;
+                paragraph.textContent = message;
+                preview.append(paragraph);
+            };
+
+            const loadHistory = async () => {
+                if (!studentSelect.value || !offenseSelect.value) {
+                    preview.replaceChildren();
+                    return;
+                }
+
+                showMessage('Loading prior offense history…');
+
+                try {
+                    const url = new URL(preview.dataset.historyUrl, window.location.origin);
+                    url.searchParams.set('student_id', studentSelect.value);
+                    url.searchParams.set('offense_id', offenseSelect.value);
+                    const response = await fetch(url, { headers: { Accept: 'application/json' } });
+
+                    if (!response.ok) {
+                        throw new Error(`History request failed (${response.status}).`);
+                    }
+
+                    const data = await response.json();
+                    preview.replaceChildren();
+                    const heading = document.createElement('p');
+                    heading.className = 'rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950';
+                    heading.textContent = `Prior occurrences: ${data.records.length}. Next level: ${data.next_level}. Mapped sanction: ${data.next_sanction || 'No tier configured'}.`;
+                    preview.append(heading);
+
+                    for (const record of data.records) {
+                        const item = document.createElement('p');
+                        item.className = 'mt-2 rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-700';
+                        item.textContent = `${record.offense_level} · ${record.incident_date} · ${record.status} · ${record.sanction || 'Sanction not assigned'}`;
+                        preview.append(item);
+                    }
+                } catch (error) {
+                    showMessage(error instanceof Error ? error.message : 'Unable to load offense history.', 'text-red-700');
+                }
+            };
+
+            studentSelect.addEventListener('change', loadHistory);
+            offenseSelect.addEventListener('change', loadHistory);
+            loadHistory();
+        });
+    </script>
 </x-staff-app-layout>
