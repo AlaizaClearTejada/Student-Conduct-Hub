@@ -2,11 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Jobs\ProcessDocumentOcr;
 use App\Livewire\Staff\FormalChargeForm;
 use App\Models\IncidentReport;
 use App\Models\OffenseRule;
-use App\Models\TribunalCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -134,10 +132,8 @@ class FormalChargeFormTest extends TestCase
         $this->assertStringStartsWith('INC-', $report->tracking_number);
         $this->assertStringStartsWith('confidential_evidence/', $report->evidence_path);
 
-        $tribunalCase = TribunalCase::where('incident_report_id', $report->id)->firstOrFail();
-        $this->assertSame($report->evidence_path, $tribunalCase->document_path);
-        $this->assertSame($report->description, $tribunalCase->description);
-        Queue::assertPushed(ProcessDocumentOcr::class);
+        $this->assertDatabaseCount('tribunal_cases', 0);
+        Queue::assertNothingPushed();
     }
 
     // ─── Validation Failures ────────────────────────────────────────────────

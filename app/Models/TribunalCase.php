@@ -15,6 +15,10 @@ class TribunalCase extends Model
         'incident_report_id',
         'violation_record_id',
         'title',
+        'respondent_name',
+        'incident_date',
+        'category',
+        'priority',
         'description',
         'status',
         'document_path',
@@ -26,6 +30,7 @@ class TribunalCase extends Model
     {
         return [
             'status' => \App\Enums\CaseStatus::class,
+            'incident_date' => 'date',
         ];
     }
 

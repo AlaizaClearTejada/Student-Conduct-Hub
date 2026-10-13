@@ -165,7 +165,7 @@ class User extends Authenticatable
 
     public function canAccessTribunalModule(): bool
     {
-        return in_array($this->role_type, ['tribunal_panel', 'admin'], true);
+        return $this->role_type === 'tribunal_panel' && $this->can('access tribunal module');
     }
 
     /**

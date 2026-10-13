@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class TestRolesAndPermissionsSeeder extends Seeder
@@ -19,5 +20,12 @@ class TestRolesAndPermissionsSeeder extends Seeder
                 'guard_name' => 'web',
             ]);
         }
+
+        $permission = Permission::firstOrCreate([
+            'name' => 'access tribunal module',
+            'guard_name' => 'web',
+        ]);
+
+        Role::where('name', 'tribunal')->firstOrFail()->givePermissionTo($permission);
     }
 }

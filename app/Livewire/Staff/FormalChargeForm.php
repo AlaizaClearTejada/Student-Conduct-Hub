@@ -6,7 +6,6 @@ use App\Events\IncidentReported;
 use App\Models\IncidentReport;
 use App\Models\OffenseRule;
 use App\Models\User;
-use App\Services\TribunalCaseRouter;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
@@ -155,10 +154,6 @@ class FormalChargeForm extends Component
             'evidence_path' => $evidencePath,
             'status' => 'Submitted',
         ]);
-
-        if (OffenseRule::requiringTribunalReview()->whereKey($report->offense_id)->exists()) {
-            app(TribunalCaseRouter::class)->routeIncidentReport($report);
-        }
 
         Event::dispatch(new IncidentReported($report));
 

@@ -14,6 +14,9 @@
                 <h3 class="text-lg font-semibold text-gray-900">Active Tribunal Cases</h3>
                 <p class="text-sm text-gray-500 mt-1">Confidential records for the Tribunal Panel.</p>
             </div>
+            <a href="{{ route('tribunal.cases.create') }}" class="bg-mahogany hover:bg-black-cherry text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">
+                + New Case
+            </a>
         </div>
 
         @if(session('success'))
@@ -59,18 +62,16 @@
                         <tbody>
                             @foreach($cases as $case)
                                 <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
-                                    <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                                        <a href="{{ route('tribunal.cases.show', $case) }}" class="text-mahogany hover:underline">{{ $case->case_number }}</a>
-                                    </td>
+                                    <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">{{ $case->case_number }}</td>
                                     <td class="px-6 py-4">{{ $case->title }}</td>
                                     <td class="px-6 py-4">
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                            {{ ucwords(str_replace('_', ' ', $case->status->value)) }}
+                                            {{ ucfirst(str_replace('_', ' ', $case->status->value ?? $case->status)) }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4">{{ $case->created_at->format('M d, Y') }}</td>
                                     <td class="px-6 py-4 text-right">
-                                        <a href="{{ route('tribunal.cases.show', $case) }}" class="font-medium text-mahogany hover:underline">Review Case</a>
+                                        <a href="{{ route('tribunal.cases.show', $case) }}" class="font-medium text-mahogany hover:underline">View</a>
                                     </td>
                                 </tr>
                             @endforeach

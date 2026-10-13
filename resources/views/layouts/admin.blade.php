@@ -24,13 +24,14 @@
             <div class="h-16 flex items-center gap-3 px-4 border-b border-black-cherry">
                 <img src="{{ asset('LOGO/csu.png') }}" alt="CSU Logo" class="h-10 w-10 object-contain">
                 <div>
-                    <h1 class="text-sm font-bold text-white">SCMS Admin</h1>
-                    <p class="text-xs text-gray-300">Administrator Portal</p>
+                    <h1 class="text-sm font-bold text-white">{{ auth()->user()?->role_type === 'tribunal_panel' ? 'SCMS Tribunal' : 'SCMS Admin' }}</h1>
+                    <p class="text-xs text-gray-300">{{ auth()->user()?->role_type === 'tribunal_panel' ? 'Tribunal Panel Portal' : 'Administrator Portal' }}</p>
                 </div>
             </div>
 
             <!-- Navigation -->
             <nav @click="if ($event.target.closest('a')) sidebarOpen = false" class="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+                @role('administrator')
                 <a href="{{ route('admin.dashboard') }}"
                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('admin.dashboard') ? 'bg-inferno text-white' : 'text-gray-200 hover:bg-black-cherry hover:text-white' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,8 +72,9 @@
                     </svg>
                     System Configuration
                 </a>
+                @endrole
 
-                @if(auth()->check() && in_array(auth()->user()->role_type, ['tribunal_panel', 'admin'], true))
+                @if(auth()->user()?->canAccessTribunalModule())
                 <a href="{{ route('tribunal.cases.index') }}"
                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('tribunal.cases*') ? 'bg-inferno text-white' : 'text-gray-200 hover:bg-black-cherry hover:text-white' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

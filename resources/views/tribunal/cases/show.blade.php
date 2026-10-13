@@ -25,14 +25,13 @@
             </div>
         @endif
 
+        <x-workflow-faq />
+
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                 <div>
                     <h3 class="text-lg font-bold text-gray-900">Case Details: {{ $case->case_number ?? 'N/A' }}</h3>
                     <p class="text-sm text-gray-500 mt-1">{{ $case->title ?? 'Tribunal Document' }}</p>
-                    @if($case->violationRecord?->offenseRule)
-                        <p class="text-sm text-gray-600 mt-1">Disciplinary Violation: {{ $case->violationRecord->offenseRule->title }}</p>
-                    @endif
                 </div>
                 <div>
                     <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold shadow-sm border border-blue-200">
@@ -102,7 +101,7 @@
                     <div class="bg-gray-100 rounded-lg border border-gray-200 h-[32rem] flex items-center justify-center overflow-hidden">
                         @if($case->document_path)
                             @if(Str::endsWith(strtolower($case->document_path), ['.pdf']))
-                                <iframe src="{{ route('tribunal.cases.document', $case) }}" title="Original case document" class="w-full h-full" frameborder="0"></iframe>
+                                <iframe src="{{ route('tribunal.cases.document', $case) }}" class="w-full h-full" frameborder="0"></iframe>
                             @elseif(Str::endsWith(strtolower($case->document_path), ['.jpg', '.jpeg', '.png']))
                                 <img src="{{ route('tribunal.cases.document', $case) }}" alt="Scanned Document" class="max-w-full max-h-full object-contain">
                             @else

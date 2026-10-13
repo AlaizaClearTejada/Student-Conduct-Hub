@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -28,6 +29,7 @@ class RoleSeeder extends Seeder
             'assign discipline',
             'view own incidents',
             'appeal incidents',
+            'access tribunal module',
         ];
 
         foreach ($permissions as $permission) {
@@ -54,6 +56,13 @@ class RoleSeeder extends Seeder
             'view reports',
             'assign discipline',
         ]);
+
+        $tribunalRole = Role::firstOrCreate(['name' => 'tribunal', 'guard_name' => 'web']);
+        $tribunalRole->syncPermissions(['access tribunal module']);
+        User::query()
+            ->where('role_type', 'tribunal_panel')
+            ->get()
+            ->each(fn (User $user) => $user->assignRole($tribunalRole));
 
         // Administrator role - all permissions
         $adminRole = Role::firstOrCreate(['name' => 'administrator', 'guard_name' => 'web']);

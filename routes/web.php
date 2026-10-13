@@ -41,6 +41,10 @@ Route::get('dashboard', function () {
         return redirect()->route('student.dashboard');
     }
 
+    if ($user->canAccessTribunalModule()) {
+        return redirect()->route('tribunal.cases.index');
+    }
+
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -119,6 +123,8 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
 // Tribunal Module Routes - Strictly isolated
 Route::middleware(['auth', 'tribunal'])->prefix('dashboard/tribunal')->name('tribunal.')->group(function () {
     Route::get('/cases', [\App\Http\Controllers\TribunalController::class, 'index'])->name('cases.index');
+    Route::get('/cases/create', [\App\Http\Controllers\TribunalController::class, 'create'])->name('cases.create');
+    Route::post('/cases', [\App\Http\Controllers\TribunalController::class, 'store'])->name('cases.store');
     Route::post('/documents', [\App\Http\Controllers\TribunalDocumentController::class, 'upload'])->name('documents.upload');
     Route::get('/cases/{case}', [\App\Http\Controllers\TribunalController::class, 'show'])->name('cases.show');
     Route::get('/cases/{case}/document', [\App\Http\Controllers\TribunalController::class, 'document'])->name('cases.document');

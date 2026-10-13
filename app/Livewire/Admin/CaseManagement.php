@@ -13,7 +13,6 @@ use App\Models\OffenseRule;
 use App\Models\TribunalCase;
 use App\Models\User;
 use App\Models\ViolationRecord;
-use App\Services\TribunalCaseRouter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -219,7 +218,33 @@ class CaseManagement extends Component
             'investigation_type' => 'Tribunal',
         ]);
 
-        app(TribunalCaseRouter::class)->routeViolationRecord($this->selectedCase);
+        if (! \App\Models\TribunalCase::query()
+            ->where('case_number', $this->selectedCase->case_tracking_number)
+            ->exists()) {
+            $student = $this->selectedCase->student;
+            $offense = $this->selectedCase->offenseRule;
+            $evidence = \App\Models\CaseEvidence::query()
+                ->where('violation_record_id', $this->selectedCase->id)
+                ->first();
+
+            $tribunalCase = \App\Models\TribunalCase::query()->create([
+                'case_number' => $this->selectedCase->case_tracking_number,
+                'violation_record_id' => $this->selectedCase->id,
+                'title' => 'Disciplinary Case: '.($offense?->title ?? 'Violation'),
+                'respondent_name' => $student?->name ?? 'Unknown Student',
+                'incident_date' => $this->selectedCase->date_of_incident,
+                'category' => $offense?->category ?? 'General',
+                'priority' => $offense?->gravity === 'major' ? 'high' : 'normal',
+                'description' => $this->selectedCase->incident_description,
+                'status' => \App\Enums\CaseStatus::UNDER_FORMAL_INVESTIGATION,
+                'document_path' => $evidence?->file_path,
+                'document_disk' => 'local',
+            ]);
+
+            if ($tribunalCase->document_path !== null) {
+                \App\Jobs\ProcessDocumentOcr::dispatch($tribunalCase)->afterCommit();
+            }
+        }
 
         CaseWorkflowLog::logAction(
             $this->selectedCase->id,
@@ -432,8 +457,28 @@ class CaseManagement extends Component
             ]);
         }
 
-        if ($isTribunalCase) {
-            app(TribunalCaseRouter::class)->routeViolationRecord($record, $report, $tribunalDocumentPath);
+        if ($isTribunalCase && ! \App\Models\TribunalCase::query()
+            ->where('case_number', $record->case_tracking_number)
+            ->exists()) {
+            $student = $report->student;
+            $tribunalCase = \App\Models\TribunalCase::query()->create([
+                'case_number' => $record->case_tracking_number,
+                'incident_report_id' => $report->id,
+                'violation_record_id' => $record->id,
+                'title' => 'Disciplinary Case: '.($offense?->title ?? 'Violation'),
+                'respondent_name' => $student?->name ?? 'Unknown Student',
+                'incident_date' => $this->acceptDateOfIncident,
+                'category' => $offense?->category ?? 'General',
+                'priority' => $offense?->gravity === 'major' ? 'high' : 'normal',
+                'description' => $report->description,
+                'status' => \App\Enums\CaseStatus::UNDER_FORMAL_INVESTIGATION,
+                'document_path' => $tribunalDocumentPath,
+                'document_disk' => 'local',
+            ]);
+
+            if ($tribunalCase->document_path !== null) {
+                \App\Jobs\ProcessDocumentOcr::dispatch($tribunalCase)->afterCommit();
+            }
         }
 
         CaseWorkflowLog::logAction(

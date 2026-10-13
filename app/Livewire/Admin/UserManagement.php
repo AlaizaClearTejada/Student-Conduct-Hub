@@ -96,7 +96,8 @@ class UserManagement extends Component
         $this->lastName = $user->last_name ?: str($user->name)->afterLast(' ')->toString();
         $this->email = $user->email;
         $this->password = '';
-        $this->role = $user->getRoleNames()->first() ?? 'staff';
+        $this->role = $user->getRoleNames()->first()
+            ?? ($user->role_type === 'tribunal_panel' ? 'tribunal' : 'staff');
         $this->showCreateModal = false;
         $this->showEditModal = true;
         $this->resetValidation();
@@ -111,7 +112,7 @@ class UserManagement extends Component
             'lastName' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8'],
-            'role' => ['required', Rule::in(['administrator', 'staff'])],
+            'role' => ['required', Rule::in(['administrator', 'staff', 'tribunal'])],
         ]);
 
         if ($user->id === auth()->id() && $validated['role'] !== 'administrator') {
@@ -120,13 +121,16 @@ class UserManagement extends Component
             return;
         }
 
-        $user->update([
+        $attributes = [
             'name' => trim($validated['firstName'].' '.$validated['lastName']),
             'first_name' => $validated['firstName'],
             'last_name' => $validated['lastName'],
             'email' => $validated['email'],
+            'role_type' => $this->roleTypeForRole($validated['role']),
             ...($validated['password'] ? ['password' => Hash::make($validated['password'])] : []),
-        ]);
+        ];
+
+        $user->update($attributes);
 
         $user->syncRoles([$validated['role']]);
 
@@ -155,16 +159,19 @@ class UserManagement extends Component
             'lastName' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', 'string', 'min:8'],
-            'role' => ['required', Rule::in(['administrator', 'staff'])],
+            'role' => ['required', Rule::in(['administrator', 'staff', 'tribunal'])],
         ]);
 
-        $user = User::create([
+        $attributes = [
             'name' => trim($validated['firstName'].' '.$validated['lastName']),
             'first_name' => $validated['firstName'],
             'last_name' => $validated['lastName'],
             'email' => $validated['email'],
+            'role_type' => $this->roleTypeForRole($validated['role']),
             'password' => Hash::make($validated['password']),
-        ]);
+        ];
+
+        $user = User::query()->create($attributes);
 
         $user->assignRole($validated['role']);
 
@@ -184,6 +191,15 @@ class UserManagement extends Component
 
         $this->closeCreateModal();
         session()->flash('message', 'User created successfully.');
+    }
+
+    private function roleTypeForRole(string $role): string
+    {
+        return match ($role) {
+            'administrator' => 'admin',
+            'staff' => 'osdw_staff',
+            'tribunal' => 'tribunal_panel',
+        };
     }
 
     public function openSuspendModal(int $userId): void
@@ -326,7 +342,7 @@ class UserManagement extends Component
 
         return view('livewire.admin.user-management', [
             'users' => $query->paginate(10),
-            'roles' => Role::whereIn('name', ['administrator', 'staff'])->get(),
+            'roles' => Role::whereIn('name', ['administrator', 'staff', 'tribunal'])->get(),
         ])->layout('layouts.admin', ['title' => 'Staff & User Management']);
     }
 }
