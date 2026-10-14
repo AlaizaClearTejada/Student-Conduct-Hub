@@ -66,18 +66,19 @@ class ComplaintLetterOcrService
         $executableFinder = new ExecutableFinder;
 
         foreach ($this->pythonBinaries() as $pythonBinary) {
-            $executable = is_file($pythonBinary) ? $pythonBinary : $executableFinder->find($pythonBinary);
+            $executable = $this->resolveExecutable($pythonBinary, $executableFinder);
 
-            if ($executable === null) {
+            if ($executable === null || trim($executable) === '') {
                 $startErrors[] = "Python executable [{$pythonBinary}] was not found.";
 
                 continue;
             }
 
+            $command = [$executable, $scriptPath, $filePath];
             $environment = array_filter([
                 'TESSERACT_CMD' => config('services.python.tesseract_cmd'),
             ], fn ($value): bool => is_string($value) && trim($value) !== '');
-            $process = new Process([$executable, $scriptPath, $filePath], env: $environment);
+            $process = new Process($command, env: $environment);
             $process->setTimeout(300);
 
             try {
@@ -117,6 +118,35 @@ class ComplaintLetterOcrService
         throw new RuntimeException($this->manualProcessingGuidance(
             'OCR is unavailable because no Python executable could be started.'.$detail
         ));
+    }
+
+    private function resolveExecutable(string $pythonBinary, ExecutableFinder $executableFinder): ?string
+    {
+        $pythonBinary = trim($pythonBinary, " \t\n\r\0\x0B\"'");
+
+        if ($pythonBinary === '') {
+            return null;
+        }
+
+        if (is_file($pythonBinary)) {
+            if (DIRECTORY_SEPARATOR === '\\' || is_executable($pythonBinary)) {
+                return $pythonBinary;
+            }
+
+            return null;
+        }
+
+        $executable = $executableFinder->find($pythonBinary);
+
+        if (! is_string($executable) || trim($executable) === '') {
+            return null;
+        }
+
+        if (str_contains($pythonBinary, DIRECTORY_SEPARATOR) && ! is_file($executable)) {
+            return null;
+        }
+
+        return $executable;
     }
 
     /**

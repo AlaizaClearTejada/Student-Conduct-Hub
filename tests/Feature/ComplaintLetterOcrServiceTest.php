@@ -8,6 +8,29 @@ use Tests\TestCase;
 
 class ComplaintLetterOcrServiceTest extends TestCase
 {
+    public function test_empty_python_configuration_never_reaches_the_process_command(): void
+    {
+        config([
+            'services.python.path' => '  ',
+            'services.python.binary' => '',
+        ]);
+        $originalPath = getenv('PATH');
+        putenv('PATH=');
+
+        try {
+            app(ComplaintLetterOcrService::class)->extractText(
+                storage_path('app/testing/missing-complaint-letter.png')
+            );
+            $this->fail('OCR should fail cleanly when no Python executable is configured.');
+        } catch (RuntimeException $exception) {
+            $this->assertStringContainsString('no Python executable could be started', $exception->getMessage());
+            $this->assertStringContainsString('PYTHON_PATH', $exception->getMessage());
+            $this->assertStringNotContainsString('not recognized as an internal or external command', $exception->getMessage());
+        } finally {
+            putenv($originalPath === false ? 'PATH' : 'PATH='.$originalPath);
+        }
+    }
+
     public function test_ocr_failure_explains_manual_entry_and_administrator_configuration(): void
     {
         config([
