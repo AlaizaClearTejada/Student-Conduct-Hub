@@ -3,9 +3,10 @@
 namespace App\Livewire\Staff;
 
 use App\Helpers\StudentProgramCatalog;
+use App\Mail\StudentCredentialsMail;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 
@@ -127,10 +128,10 @@ class StudentForm extends Component
         ];
 
         if ($this->isEditing) {
-            $rules['studentIdInput'] = 'required|string|max:50|unique:users,student_id,'.$this->editingId;
+            $rules['studentIdInput'] = 'required|string|regex:/^\d{2}-\d{5}$/|unique:users,student_id,'.$this->editingId;
             $rules['email'] = 'required|email|max:255|unique:users,email,'.$this->editingId;
         } else {
-            $rules['studentIdInput'] = 'required|string|max:50|unique:users,student_id';
+            $rules['studentIdInput'] = 'required|string|regex:/^\d{2}-\d{5}$/|unique:users,student_id';
             $rules['email'] = 'required|email|max:255|unique:users,email';
         }
 
@@ -138,6 +139,7 @@ class StudentForm extends Component
             'firstName.required' => 'First name is required.',
             'lastName.required' => 'Last name is required.',
             'studentIdInput.required' => 'Student ID is required.',
+            'studentIdInput.regex' => 'Student ID must follow the format 24-00005.',
             'studentIdInput.unique' => 'This Student ID is already registered.',
             'email.required' => 'Email address is required.',
             'email.unique' => 'This email is already in use.',
@@ -170,7 +172,7 @@ class StudentForm extends Component
 
             session()->flash('roster-success', 'Student record updated successfully.');
         } else {
-            $plainPassword = $this->studentIdInput ?: Str::random(10);
+            $plainPassword = app(\App\Services\StudentPasswordGenerator::class)->generate();
 
             $student = User::create([
                 'student_id' => $this->studentIdInput,
@@ -189,9 +191,9 @@ class StudentForm extends Component
 
             $student->assignRole('student');
 
-            \Illuminate\Support\Facades\Mail::to($student->email)->queue(new \App\Mail\StudentWelcomeMail($student, $plainPassword));
+            Mail::to($student->email)->queue(new StudentCredentialsMail($student, $plainPassword));
 
-            session()->flash('roster-success', "Student {$fullName} registered successfully. Their temporary password is their Student ID.");
+            session()->flash('roster-success', "Student {$fullName} registered successfully. Login credentials were sent to their email address.");
         }
 
         $this->redirect(route('staff.students'), navigate: true);

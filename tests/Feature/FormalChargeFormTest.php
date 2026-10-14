@@ -6,6 +6,7 @@ use App\Livewire\Staff\FormalChargeForm;
 use App\Models\IncidentReport;
 use App\Models\OffenseRule;
 use App\Models\User;
+use App\Services\ComplaintLetterOcrService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
@@ -132,8 +133,35 @@ class FormalChargeFormTest extends TestCase
         $this->assertStringStartsWith('INC-', $report->tracking_number);
         $this->assertStringStartsWith('confidential_evidence/', $report->evidence_path);
 
-        $this->assertDatabaseCount('tribunal_cases', 0);
+        $this->assertDatabaseHas('tribunal_cases', [
+            'case_number' => $report->tracking_number,
+            'incident_report_id' => $report->id,
+            'is_formal_charge' => true,
+        ]);
+        $this->assertDatabaseCount('tribunal_cases', 1);
         Queue::assertNothingPushed();
+    }
+
+    public function test_uploading_a_complaint_scan_extracts_text_and_suggests_student_and_offense(): void
+    {
+        $this->offense->update([
+            'title' => 'Academic Dishonesty',
+            'description' => 'Plagiarism and cheating in academic assignments.',
+        ]);
+        $ocrText = "Student ID: {$this->student->student_id}\nComplaint: Academic dishonesty through plagiarism.";
+        $ocr = \Mockery::mock(ComplaintLetterOcrService::class);
+        $ocr->shouldReceive('extractText')->once()->andReturn($ocrText);
+        app()->instance(ComplaintLetterOcrService::class, $ocr);
+
+        Livewire::actingAs($this->staff)
+            ->test(FormalChargeForm::class)
+            ->set('complaintLetter', UploadedFile::fake()->image('complaint.png'))
+            ->assertSet('ocrExtractedText', $ocrText)
+            ->assertSet('incidentDescription', $ocrText)
+            ->assertSet('studentIdInput', $this->student->student_id)
+            ->assertSet('studentVerified', true)
+            ->assertSet('studentName', $this->student->name)
+            ->assertSet('offenseId', $this->offense->id);
     }
 
     // ─── Validation Failures ────────────────────────────────────────────────

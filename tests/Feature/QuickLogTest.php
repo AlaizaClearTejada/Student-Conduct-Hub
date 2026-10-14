@@ -43,5 +43,56 @@ class QuickLogTest extends TestCase
 
         $this->assertSame($student->id, $report->student_id);
         $this->assertSame($offense->id, $report->offense_id);
+        $this->assertDatabaseCount('tribunal_cases', 0);
+    }
+
+    public function test_handbook_search_suggests_minor_violations_and_routes_major_violations_to_formal_charge(): void
+    {
+        $minor = OffenseRule::factory()->minor()->create([
+            'code' => 'PR-101',
+            'title' => 'No ID',
+        ]);
+        $major = OffenseRule::factory()->create([
+            'code' => 'AC-201',
+            'title' => 'Academic Dishonesty',
+            'severity_level' => 'Major',
+            'gravity' => 'major',
+        ]);
+
+        $component = Livewire::test(QuickLog::class)
+            ->set('violationSearch', 'No ID')
+            ->assertSee('Minor Infraction')
+            ->assertSee('No ID')
+            ->assertSet('offenseId', (string) $minor->id);
+
+        $component->call('selectOffenseSuggestion', $major->id)
+            ->assertRedirect(route('staff.formal-charge', ['offense' => $major->id]));
+    }
+
+    public function test_staff_incident_report_form_renders_live_handbook_search_with_severity_suggestions(): void
+    {
+        Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'web']);
+        $staff = User::factory()->staff()->create();
+        $staff->assignRole('staff');
+
+        OffenseRule::factory()->minor()->create([
+            'code' => 'PR-101',
+            'title' => 'No ID',
+        ]);
+        OffenseRule::factory()->create([
+            'code' => 'AC-201',
+            'title' => 'Academic Dishonesty',
+            'severity_level' => 'Major',
+            'gravity' => 'major',
+        ]);
+
+        $this->actingAs($staff)
+            ->get(route('staff.report.create'))
+            ->assertOk()
+            ->assertSee('Search Handbook Violations')
+            ->assertSee('PR-101')
+            ->assertSee('AC-201')
+            ->assertSee('function incidentReportForm', false)
+            ->assertSee('Major Formal Charge');
     }
 }

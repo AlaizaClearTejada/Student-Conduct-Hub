@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\ViolationRecord;
 use App\Services\DecisionSupportService;
 use App\Services\OffenseProgressionService;
+use App\Services\TribunalCaseRegistrar;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -71,7 +72,9 @@ class StaffIncidentController extends Controller
             ->get();
 
         // Get all offense rules (for offense selection)
-        $offenseRules = OffenseRule::orderBy('code')
+        $offenseRules = OffenseRule::query()
+            ->active()
+            ->orderBy('code')
             ->get();
 
         return view('staff.report-create', compact('students', 'offenseRules'));
@@ -134,6 +137,7 @@ class StaffIncidentController extends Controller
 
         // 5. Trigger Notification to OSDW (Admin)
         Event::dispatch(new IncidentReported($report));
+        app(TribunalCaseRegistrar::class)->registerEligibleReport($report);
 
         return redirect()->route('staff.dashboard')
             ->with('success', 'Incident reported successfully. Tracking Number: '.$report->tracking_number);

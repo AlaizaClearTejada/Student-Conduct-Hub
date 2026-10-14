@@ -1,4 +1,4 @@
-<div>
+<div x-data>
     {{-- Form Card --}}
     <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
         {{-- Header --}}
@@ -30,8 +30,12 @@
                                 </label>
                                 <input
                                     wire:model.live.debounce.400ms="studentIdInput"
+                                    x-on:input="$el.value = $el.value.replace(/\D/g, '').slice(0, 7).replace(/^(\d{2})(?=\d)/, '$1-')"
                                     type="text"
-                                    placeholder="e.g. 2024-0001"
+                                    inputmode="numeric"
+                                    pattern="[0-9]{2}-[0-9]{5}"
+                                    maxlength="8"
+                                    placeholder="e.g. 24-00005"
                                     {{ $isEditing ? 'readonly' : '' }}
                                     class="w-full px-4 py-3 border-2 rounded-xl text-sm font-mono font-semibold focus:ring-2 focus:ring-[#a50104]/20 focus:border-[#a50104] outline-none transition-all
                                         {{ $isEditing ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' : 'bg-white border-gray-300 hover:border-gray-400' }}

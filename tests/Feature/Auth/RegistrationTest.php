@@ -19,7 +19,7 @@ class RegistrationTest extends TestCase
             ->assertOk()
             ->assertSeeVolt('pages.auth.register')
             ->assertSee('Student')
-            ->assertSee('e.g., 24-00001')
+            ->assertSee('e.g., 24-00005')
             ->assertDontSee('OSDW Staff')
             ->assertDontSee('<option value="admin">');
 
@@ -75,11 +75,11 @@ class RegistrationTest extends TestCase
             ->set('year_level', '1st Year')
             ->set('section', 'A');
 
-        $component->assertSee('Student ID must follow the format 00-00000');
+        $component->assertSee('Student ID must follow the format 24-00005.');
         $component->call('register');
 
         $component->assertHasErrors(['student_id' => ['regex']]);
-        $component->assertSee('The Student ID format must be strictly 00-00000 (e.g., 24-00001).');
+        $component->assertSee('Student ID must follow the format 24-00005.');
         $this->assertDatabaseMissing('users', ['email' => 'invalid-student@example.com']);
     }
 

@@ -35,6 +35,8 @@ class AdminPortalRefinementsTest extends TestCase
             ->assertSee('Administrator')
             ->assertSee('Staff')
             ->assertSee('Student')
+            ->assertDontSee('pagination')
+            ->assertDontSee('Showing ')
             ->set('roleFilter', 'staff')
             ->assertSee('staff-audit-marker')
             ->assertDontSee('admin-audit-marker')

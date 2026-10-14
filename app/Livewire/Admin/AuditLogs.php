@@ -89,7 +89,7 @@ class AuditLogs extends Component
             ->values();
 
         return view('livewire.admin.audit-logs', [
-            'logs' => $query->paginate(20),
+            'logs' => $query->get(),
             'eventTypes' => $eventTypes,
         ])->layout('layouts.admin', ['title' => 'Audit Trails & Logs']);
     }

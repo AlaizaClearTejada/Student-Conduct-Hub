@@ -4,10 +4,14 @@ namespace Tests\Feature;
 
 use App\Imports\StudentImport;
 use App\Livewire\Staff\StudentRoster;
+use App\Mail\StudentCredentialsMail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -170,8 +174,75 @@ class StudentImportTest extends TestCase
 
         $generatedEmail = $import->validRows[0]['email'];
 
-        $this->assertStringContainsString('pedro', strtolower($generatedEmail));
-        $this->assertStringContainsString('@csu.edu.ph', $generatedEmail);
+        $this->assertSame('25-00099@csu.edu.ph', $generatedEmail);
+    }
+
+    public function test_six_column_code_name_course_import_persists_students_and_queues_strong_credentials(): void
+    {
+        Mail::fake();
+        $import = new StudentImport;
+        $import->collection(collect([
+            ['Code', 'Name', 'Course', 'Year', 'Section', 'Email'],
+            ['24-00005', 'Santos, Maria', 'BSIT', '2', 'A', ''],
+        ]));
+
+        $this->assertSame(1, $import->persistStudents($import->validRows));
+
+        $student = User::where('student_id', '24-00005')->firstOrFail();
+        $this->assertSame('24-00005@csu.edu.ph', $student->email);
+        $this->assertSame('COLLEGE OF INFORMATION AND COMPUTING SCIENCES', $student->college);
+        $this->assertSame('2nd Year', $student->year_level);
+        $this->assertTrue($student->hasRole('student'));
+
+        Mail::assertQueued(StudentCredentialsMail::class, function (StudentCredentialsMail $mail) use ($student): bool {
+            return $mail->student->is($student)
+                && preg_match('/[A-Z]/', $mail->password) === 1
+                && preg_match('/[0-9]/', $mail->password) === 1
+                && preg_match('/[!@#$%^&*]/', $mail->password) === 1
+                && strlen($mail->password) >= 8
+                && Hash::check($mail->password, $student->password);
+        });
+    }
+
+    public function test_import_rolls_back_created_users_when_role_assignment_fails(): void
+    {
+        Mail::fake();
+        DB::table('roles')->where('name', 'student')->delete();
+
+        $import = new StudentImport;
+        $import->collection(collect([
+            ['Code', 'Name', 'Course', 'Year', 'Section', 'Email'],
+            ['24-00006', 'Student, Rollback', 'BSIT', '1', 'A', ''],
+        ]));
+
+        try {
+            $import->persistStudents($import->validRows);
+            $this->fail('Import should fail when the student role cannot be assigned.');
+        } catch (\Spatie\Permission\Exceptions\RoleDoesNotExist) {
+            $this->assertDatabaseMissing('users', ['student_id' => '24-00006']);
+            Mail::assertNothingQueued();
+        }
+    }
+
+    public function test_archived_roster_empty_state_is_specific_and_hides_add_action(): void
+    {
+        Livewire::actingAs($this->staff)
+            ->test(StudentRoster::class)
+            ->set('showArchived', true)
+            ->assertSee('No archived student accounts found.')
+            ->assertDontSee('No students registered yet')
+            ->assertDontSee('+ Add First Student');
+    }
+
+    public function test_roster_table_is_wrapped_for_horizontal_overflow(): void
+    {
+        $student = User::factory()->student()->create();
+        $student->assignRole('student');
+
+        Livewire::actingAs($this->staff)
+            ->test(StudentRoster::class)
+            ->assertSee('overflow-x-auto')
+            ->assertSee('min-w-[48rem]');
     }
 
     public function test_student_import_skips_empty_student_id_rows(): void
@@ -196,6 +267,19 @@ class StudentImportTest extends TestCase
         $this->assertEquals(0, $import->importedCount);
         $this->assertEquals(0, $import->skippedCount);
         $this->assertCount(0, $import->errors);
+    }
+
+    public function test_student_import_rejects_ids_outside_the_required_format(): void
+    {
+        $import = new StudentImport;
+        $import->collection(collect([
+            ['Code', 'Name', 'Course', 'Year', 'Section', 'Email'],
+            ['2024-0001', 'Student, Test', 'BSIT', '1', 'A', ''],
+        ]));
+
+        $this->assertSame(0, $import->importedCount);
+        $this->assertSame(1, $import->skippedCount);
+        $this->assertSame('Invalid ID format (Expected format: 24-00005)', $import->errors[0]['reason']);
     }
 
     /**

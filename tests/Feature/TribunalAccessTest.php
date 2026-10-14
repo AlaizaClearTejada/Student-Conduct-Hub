@@ -43,7 +43,8 @@ class TribunalAccessTest extends TestCase
             ->get(route('tribunal.cases.index'))
             ->assertOk()
             ->assertSee('Tribunal Module')
-            ->assertSee('+ New Case')
+            ->assertDontSee('+ New Case')
+            ->assertSee('opened automatically from staff formal charges')
             ->assertSee('bg-inferno text-white', false);
     }
 

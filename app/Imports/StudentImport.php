@@ -3,10 +3,13 @@
 namespace App\Imports;
 
 use App\Helpers\StudentProgramCatalog;
+use App\Mail\StudentCredentialsMail;
 use App\Models\User;
+use App\Services\StudentPasswordGenerator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
 use Maatwebsite\Excel\Concerns\ToCollection;
 
 class StudentImport implements ToCollection
@@ -18,6 +21,38 @@ class StudentImport implements ToCollection
     public array $validRows = [];
 
     public array $errors = [];
+
+    /**
+     * Persist parsed student rows atomically and queue credentials after commit.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     */
+    public function persistStudents(array $rows): int
+    {
+        $createdStudents = DB::transaction(function () use ($rows): array {
+            $created = [];
+
+            foreach ($rows as $row) {
+                if (User::withTrashed()->where('student_id', $row['student_id'])->orWhere('email', $row['email'])->exists()) {
+                    continue;
+                }
+
+                $plainPassword = app(StudentPasswordGenerator::class)->generate();
+                $row['password'] = Hash::make($plainPassword);
+                $student = User::create($row);
+                $student->assignRole('student');
+                $created[] = [$student, $plainPassword];
+            }
+
+            return $created;
+        });
+
+        foreach ($createdStudents as [$student, $plainPassword]) {
+            Mail::to($student->email)->queue(new StudentCredentialsMail($student, $plainPassword));
+        }
+
+        return count($createdStudents);
+    }
 
     /**
      * Return the downloadable sample CSV with catalog-valid student data.
@@ -122,7 +157,7 @@ class StudentImport implements ToCollection
                 $this->errors[] = [
                     'row' => $index + 1,
                     'student_id' => $studentId,
-                    'reason' => 'Invalid ID format (Expected format: 00-00000)',
+                    'reason' => 'Invalid ID format (Expected format: 24-00005)',
                 ];
 
                 continue;
@@ -165,8 +200,7 @@ class StudentImport implements ToCollection
 
             // Auto-generate email if not provided
             if (empty($email)) {
-                $email = Str::lower($firstName.'.'.$lastName.'.'.$studentId).'@csu.edu.ph';
-                $email = preg_replace('/[^a-z0-9.@]/', '', $email);
+                $email = strtolower($studentId).'@csu.edu.ph';
             }
 
             // Skip if email already exists (including archived)
@@ -193,9 +227,21 @@ class StudentImport implements ToCollection
                 $yearLevel = $yearLevel.$suffix.' Year';
             }
 
-            $program = $columnMap['program'] !== -1 ? trim((string) ($rowArray[$columnMap['program']] ?? '')) : 'N/A';
-            $college = $columnMap['college'] !== -1 ? trim((string) ($rowArray[$columnMap['college']] ?? '')) : 'N/A';
-            $section = $columnMap['section'] !== -1 ? trim((string) ($rowArray[$columnMap['section']] ?? '')) : 'N/A';
+            $program = $columnMap['program'] !== -1 ? trim((string) ($rowArray[$columnMap['program']] ?? '')) : '';
+            $college = $columnMap['college'] !== -1 ? trim((string) ($rowArray[$columnMap['college']] ?? '')) : '';
+            $college = $college !== '' ? $college : (StudentProgramCatalog::collegeForProgram($program) ?? '');
+            $section = $columnMap['section'] !== -1 ? trim((string) ($rowArray[$columnMap['section']] ?? '')) : '';
+
+            if ($firstName === '' || $program === '' || $yearLevel === '' || $section === '') {
+                $this->skippedCount++;
+                $this->errors[] = [
+                    'row' => $index + 1,
+                    'student_id' => $studentId,
+                    'reason' => 'Name, Course, Year, and Section are required',
+                ];
+
+                continue;
+            }
 
             if (! StudentProgramCatalog::belongsToCollege($college, $program)) {
                 $this->skippedCount++;

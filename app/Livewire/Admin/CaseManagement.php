@@ -555,25 +555,25 @@ class CaseManagement extends Component
             ]);
         }
 
-        if ($isTribunalCase && ! \App\Models\TribunalCase::query()
-            ->where('case_number', $record->case_tracking_number)
-            ->exists()) {
+        if ($isTribunalCase) {
             $student = $report->student;
-            $tribunalCase = \App\Models\TribunalCase::query()->create([
-                'case_number' => $record->case_tracking_number,
-                'incident_report_id' => $report->id,
-                'violation_record_id' => $record->id,
-                'title' => 'Disciplinary Case: '.($offense?->title ?? 'Violation'),
-                'respondent_name' => $student?->name ?? 'Unknown Student',
-                'incident_date' => $this->acceptDateOfIncident,
-                'category' => $offense?->category ?? 'General',
-                'priority' => $offense?->gravity === 'major' ? 'high' : 'normal',
-                'description' => $report->description,
-                'status' => \App\Enums\CaseStatus::UNDER_FORMAL_INVESTIGATION,
-                'is_formal_charge' => $report->report_type === 'Formal Charge',
-                'document_path' => $tribunalDocumentPath,
-                'document_disk' => 'local',
-            ]);
+            $tribunalCase = TribunalCase::query()->updateOrCreate(
+                ['case_number' => $record->case_tracking_number],
+                [
+                    'incident_report_id' => $report->id,
+                    'violation_record_id' => $record->id,
+                    'title' => 'Disciplinary Case: '.($offense?->title ?? 'Violation'),
+                    'respondent_name' => $student?->name ?? 'Unknown Student',
+                    'incident_date' => $this->acceptDateOfIncident,
+                    'category' => $offense?->category ?? 'General',
+                    'priority' => $offense?->gravity === 'major' ? 'high' : 'normal',
+                    'description' => $report->description,
+                    'status' => \App\Enums\CaseStatus::UNDER_FORMAL_INVESTIGATION,
+                    'is_formal_charge' => $report->report_type === 'Formal Charge',
+                    'document_path' => $tribunalDocumentPath,
+                    'document_disk' => 'local',
+                ]
+            );
 
             if ($tribunalCase->document_path !== null) {
                 \App\Jobs\ProcessDocumentOcr::dispatch($tribunalCase)->afterCommit();

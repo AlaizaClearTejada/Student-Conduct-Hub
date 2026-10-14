@@ -7,6 +7,8 @@ use App\Models\IncidentReport;
 use App\Models\OffenseRule;
 use App\Models\User;
 use App\Services\OffenseProgressionService;
+use App\Services\OffenseRuleSuggestionService;
+use App\Services\TribunalCaseRegistrar;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
@@ -23,6 +25,8 @@ class QuickLog extends Component
 
     #[Validate('required|exists:offense_rules,id')]
     public $offenseId = '';
+
+    public string $violationSearch = '';
 
     #[Validate('required|string|min:10')]
     public $description = '';
@@ -67,6 +71,7 @@ class QuickLog extends Component
         $this->reset([
             'studentId',
             'offenseId',
+            'violationSearch',
             'description',
             'studentInitials',
             'studentProgram',
@@ -87,6 +92,7 @@ class QuickLog extends Component
         $this->reset([
             'studentId',
             'offenseId',
+            'violationSearch',
             'description',
             'studentInitials',
             'studentProgram',
@@ -139,6 +145,44 @@ class QuickLog extends Component
     public function updatedOffenseId(): void
     {
         $this->refreshOffenseProgression();
+    }
+
+    public function updatedViolationSearch(): void
+    {
+        $suggestion = $this->getOffenseSuggestionsProperty()->first();
+
+        if ($suggestion !== null && $suggestion->gravity === 'minor') {
+            $this->offenseId = (string) $suggestion->id;
+            $this->refreshOffenseProgression();
+        }
+    }
+
+    public function selectOffenseSuggestion(int $offenseId): void
+    {
+        $offense = OffenseRule::query()->active()->findOrFail($offenseId);
+
+        if (in_array($offense->severity_level, OffenseRule::TRIBUNAL_SEVERITY_LEVELS, true)) {
+            $this->redirect(route('staff.formal-charge', ['offense' => $offense->id]), navigate: true);
+
+            return;
+        }
+
+        if ($offense->gravity !== 'minor') {
+            $this->addError('violationSearch', 'This offense must be filed as a Major Formal Charge.');
+
+            return;
+        }
+
+        $this->offenseId = (string) $offense->id;
+        $this->refreshOffenseProgression();
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, OffenseRule>
+     */
+    public function getOffenseSuggestionsProperty(): \Illuminate\Database\Eloquent\Collection
+    {
+        return app(OffenseRuleSuggestionService::class)->suggest($this->violationSearch);
     }
 
     private function refreshOffenseProgression(): void
@@ -202,7 +246,7 @@ class QuickLog extends Component
             ],
             'description' => ['required', 'string', 'min:10'],
         ], [
-            'studentId.regex' => 'Student ID must follow the format 00-00000.',
+            'studentId.regex' => 'Student ID must follow the format 24-00005.',
             'studentId.exists' => 'The selected student ID is invalid.',
         ]);
 
@@ -230,6 +274,7 @@ class QuickLog extends Component
 
         // Trigger notification to OSDW
         Event::dispatch(new IncidentReported($report));
+        app(TribunalCaseRegistrar::class)->registerEligibleReport($report);
 
         // Close modal and show success message
         $this->closeModal();

@@ -4,8 +4,10 @@ namespace Tests\Feature;
 
 use App\Livewire\Staff\StudentForm;
 use App\Livewire\Staff\StudentRoster;
+use App\Mail\StudentCredentialsMail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -132,8 +134,19 @@ class StudentRegistrationTest extends TestCase
             ->assertSet('studentIdTaken', false);
     }
 
+    public function test_student_id_input_is_masked_to_the_required_format(): void
+    {
+        Livewire::actingAs($this->staff)
+            ->test(StudentForm::class)
+            ->assertSee('x-on:input', false)
+            ->assertSee('pattern="[0-9]{2}-[0-9]{5}"', false)
+            ->assertSee('placeholder="e.g. 24-00005"', false);
+    }
+
     public function test_creating_valid_student_persists_record(): void
     {
+        Mail::fake();
+
         Livewire::actingAs($this->staff)
             ->test(StudentForm::class, ['mode' => 'create'])
             ->set('studentIdInput', '25-00001')
@@ -160,6 +173,25 @@ class StudentRegistrationTest extends TestCase
 
         $newUser = User::where('student_id', '25-00001')->first();
         $this->assertTrue($newUser->hasRole('student'));
+        Mail::assertQueued(StudentCredentialsMail::class);
+    }
+
+    public function test_creating_student_rejects_student_ids_outside_required_format(): void
+    {
+        Livewire::actingAs($this->staff)
+            ->test(StudentForm::class, ['mode' => 'create'])
+            ->set('studentIdInput', '2024-0001')
+            ->set('firstName', 'Maria')
+            ->set('lastName', 'Santos')
+            ->set('email', 'maria.santos@csu.edu.ph')
+            ->set('college', 'COLLEGE OF INFORMATION AND COMPUTING SCIENCES')
+            ->set('program', 'BSIT')
+            ->set('yearLevel', '1st Year')
+            ->set('section', 'A')
+            ->call('save')
+            ->assertHasErrors(['studentIdInput' => ['regex']]);
+
+        $this->assertDatabaseMissing('users', ['email' => 'maria.santos@csu.edu.ph']);
     }
 
     public function test_creating_student_with_duplicate_id_fails_validation(): void

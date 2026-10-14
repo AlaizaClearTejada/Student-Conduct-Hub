@@ -6,10 +6,14 @@ use App\Events\IncidentReported;
 use App\Models\IncidentReport;
 use App\Models\OffenseRule;
 use App\Models\User;
+use App\Services\ComplaintLetterOcrService;
 use App\Services\OffenseProgressionService;
+use App\Services\OffenseRuleSuggestionService;
+use App\Services\TribunalCaseRegistrar;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -48,6 +52,13 @@ class FormalChargeForm extends Component
 
     public string $incidentDescription = '';
 
+    public string $violationSearch = '';
+
+    /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null */
+    public $complaintLetter = null;
+
+    public string $ocrExtractedText = '';
+
     /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null */
     public $evidenceFile = null;
 
@@ -76,6 +87,64 @@ class FormalChargeForm extends Component
             ->where('is_active', true)
             ->orderBy('code')
             ->get();
+
+        $offenseId = request()->integer('offense');
+
+        if ($offenseId > 0) {
+            $this->offenseId = $offenseId;
+            $this->refreshOffenseProgression();
+        }
+    }
+
+    public function updatedComplaintLetter(): void
+    {
+        $this->validate([
+            'complaintLetter' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
+        ]);
+
+        try {
+            $filePath = $this->complaintLetter->getRealPath() ?: $this->complaintLetter->getPathname();
+            $this->ocrExtractedText = app(ComplaintLetterOcrService::class)->extractText($filePath);
+        } catch (\RuntimeException $exception) {
+            throw ValidationException::withMessages([
+                'complaintLetter' => 'Complaint letter OCR failed: '.$exception->getMessage(),
+            ]);
+        }
+
+        $this->incidentDescription = mb_substr($this->ocrExtractedText, 0, 5000);
+        $studentId = $this->extractStudentId($this->ocrExtractedText);
+
+        if ($studentId !== null) {
+            $this->studentIdInput = $studentId;
+            $this->updatedStudentIdInput();
+        }
+
+        $this->violationSearch = $this->ocrExtractedText;
+        $this->suggestMatchingOffense();
+    }
+
+    public function updatedViolationSearch(): void
+    {
+        $this->suggestMatchingOffense();
+    }
+
+    public function selectOffenseSuggestion(int $offenseId): void
+    {
+        $offense = OffenseRule::query()
+            ->active()
+            ->requiringTribunalReview()
+            ->findOrFail($offenseId);
+
+        $this->offenseId = $offense->id;
+        $this->refreshOffenseProgression();
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, OffenseRule>
+     */
+    public function getOffenseSuggestionsProperty(): \Illuminate\Database\Eloquent\Collection
+    {
+        return app(OffenseRuleSuggestionService::class)->suggest($this->violationSearch, majorOnly: true);
     }
 
     /**
@@ -151,7 +220,7 @@ class FormalChargeForm extends Component
     public function submitCharge(): void
     {
         $this->validate([
-            'studentIdInput' => 'required|string',
+            'studentIdInput' => ['required', 'string', 'regex:/^\d{2}-\d{5}$/'],
             'studentDbId' => 'required|integer|exists:users,id',
             'college' => 'required|string',
             'yearLevel' => 'required|string',
@@ -163,6 +232,7 @@ class FormalChargeForm extends Component
             'certification' => 'accepted',
         ], [
             'studentDbId.required' => 'Please enter a valid Student ID and verify the student.',
+            'studentIdInput.regex' => 'Student ID must follow the format 24-00005.',
             'studentDbId.exists' => 'The student ID entered was not found in the system.',
             'college.required' => 'College is required. Ensure a valid student ID was entered.',
             'yearLevel.required' => 'Year level is required.',
@@ -197,10 +267,30 @@ class FormalChargeForm extends Component
         ]);
 
         Event::dispatch(new IncidentReported($report));
+        app(TribunalCaseRegistrar::class)->registerEligibleReport($report);
 
         session()->flash('success', 'Formal Charge filed successfully. Tracking Number: '.$report->tracking_number);
 
         $this->redirect(route('staff.dashboard'), navigate: true);
+    }
+
+    private function extractStudentId(string $text): ?string
+    {
+        preg_match('/\b\d{2}-\d{5}\b/', $text, $matches);
+
+        return $matches[0] ?? null;
+    }
+
+    private function suggestMatchingOffense(): void
+    {
+        $offense = $this->getOffenseSuggestionsProperty()->first();
+
+        if ($offense === null) {
+            return;
+        }
+
+        $this->offenseId = $offense->id;
+        $this->refreshOffenseProgression();
     }
 
     public function render(): \Illuminate\View\View

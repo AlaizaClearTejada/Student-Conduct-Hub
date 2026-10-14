@@ -53,11 +53,12 @@
                             type="text" 
                             id="studentId" 
                             wire:model.live.debounce.500ms="studentId"
+                            x-on:input="$el.value = $el.value.replace(/\D/g, '').slice(0, 7).replace(/^(\d{2})(?=\d)/, '$1-')"
                             x-init="$nextTick(() => $el.focus())"
                             inputmode="numeric"
                             pattern="[0-9]{2}-[0-9]{5}"
                             maxlength="8"
-                            placeholder="e.g., 24-00001"
+                            placeholder="e.g., 24-00005"
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#590004] focus:border-transparent transition-all @error('studentId') border-red-500 @enderror"
                         >
                         @error('studentId')
@@ -100,6 +101,45 @@
                             </svg>
                             <span>Verifying student identity...</span>
                         </div>
+                    </div>
+
+                    <!-- Handbook Offense Search -->
+                    <div>
+                        <label for="violationSearch" class="block text-sm font-bold text-gray-700 mb-2">
+                            Search Handbook Violations
+                        </label>
+                        <input
+                            type="search"
+                            id="violationSearch"
+                            wire:model.live.debounce.300ms="violationSearch"
+                            placeholder="Try keywords like NO ID or tardiness"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#590004] focus:border-transparent"
+                        >
+                        @if($this->offenseSuggestions->isNotEmpty())
+                            <div class="mt-2 overflow-hidden rounded-lg border border-gray-200 divide-y divide-gray-200">
+                                @foreach($this->offenseSuggestions as $suggestion)
+                                    <button
+                                        type="button"
+                                        wire:click="selectOffenseSuggestion({{ $suggestion->id }})"
+                                        wire:key="quick-offense-suggestion-{{ $suggestion->id }}"
+                                        class="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between gap-3"
+                                    >
+                                        <span>
+                                            <span class="block text-sm font-semibold text-gray-900">{{ $suggestion->code }} — {{ $suggestion->title }}</span>
+                                            <span class="text-xs text-gray-500">{{ $suggestion->category }}</span>
+                                        </span>
+                                        <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium {{ $suggestion->gravity === 'minor' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800' }}">
+                                            {{ $suggestion->gravity === 'minor' ? 'Minor Infraction' : 'Major Formal Charge' }}
+                                        </span>
+                                    </button>
+                                @endforeach
+                            </div>
+                        @elseif(mb_strlen(trim($violationSearch)) >= 2)
+                            <p class="mt-2 text-sm text-gray-500">No handbook violations matched those keywords.</p>
+                        @endif
+                        @error('violationSearch')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <!-- Offense Selection -->

@@ -6,6 +6,7 @@ use App\Events\IncidentReported;
 use App\Models\IncidentReport;
 use App\Models\OffenseRule;
 use App\Models\User;
+use App\Services\TribunalCaseRegistrar;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
@@ -161,6 +162,7 @@ class ReportIncident extends Component
 
         // Notify OSDW administrators
         Event::dispatch(new IncidentReported($report));
+        app(TribunalCaseRegistrar::class)->registerEligibleReport($report);
 
         // Success notification
         session()->flash('success', "Incident reported successfully. Tracking #: {$report->tracking_number}. The OSDW administrator will review your report.");
