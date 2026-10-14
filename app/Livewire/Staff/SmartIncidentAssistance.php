@@ -42,10 +42,9 @@ class SmartIncidentAssistance extends Component
             ]);
         }
 
-        preg_match('/\b\d{2}-\d{5}\b/', $this->extractedText, $matches);
-        $this->extractedStudentId = $matches[0] ?? null;
-        preg_match('/^(?:complainant|reported\s+by|from)\s*[:\-]\s*(.+)$/im', $this->extractedText, $complainant);
-        $this->extractedComplainant = isset($complainant[1]) ? trim($complainant[1]) : null;
+        $ocrService = app(ComplaintLetterOcrService::class);
+        $this->extractedStudentId = $ocrService->extractRespondentStudentId($this->extractedText);
+        $this->extractedComplainant = $ocrService->extractComplainantName($this->extractedText);
         $this->search = $this->extractedText;
         $this->suggestedOffenseId = $this->getOffenseSuggestionsProperty()->first()?->id;
         $this->ocrNotice = $this->suggestedOffenseId === null

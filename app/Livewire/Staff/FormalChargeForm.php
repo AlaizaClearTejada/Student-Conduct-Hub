@@ -135,12 +135,18 @@ class FormalChargeForm extends Component
         }
 
         $this->incidentDescription = mb_substr($this->ocrExtractedText, 0, 5000);
-        $studentId = $this->extractStudentId($this->ocrExtractedText);
+        $ocrService = app(ComplaintLetterOcrService::class);
+        $studentId = $ocrService->extractRespondentStudentId($this->ocrExtractedText);
+        $complainant = $ocrService->extractComplainantName($this->ocrExtractedText);
 
         if ($studentId !== null) {
             $this->studentIdInput = $studentId;
             $this->updatedStudentIdInput();
             $this->dispatch('prefill-student-lookup', studentId: $studentId);
+        }
+
+        if ($complainant !== null) {
+            $this->complainantName = $complainant;
         }
 
         $this->violationSearch = $this->ocrExtractedText;
@@ -323,13 +329,6 @@ class FormalChargeForm extends Component
         session()->flash('success', 'Formal Charge filed successfully. Tracking Number: '.$report->tracking_number);
 
         $this->redirect(route('staff.dashboard'), navigate: true);
-    }
-
-    private function extractStudentId(string $text): ?string
-    {
-        preg_match('/\b\d{2}-\d{5}\b/', $text, $matches);
-
-        return $matches[0] ?? null;
     }
 
     private function suggestMatchingOffense(): void

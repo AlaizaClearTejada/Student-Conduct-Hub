@@ -167,7 +167,7 @@ class FormalChargeFormTest extends TestCase
             'description' => 'Plagiarism and cheating in academic assignments.',
         ]);
         $ocrText = "Student ID: {$this->student->student_id}\nComplaint: Academic dishonesty through plagiarism.";
-        $ocr = \Mockery::mock(ComplaintLetterOcrService::class);
+        $ocr = \Mockery::mock(ComplaintLetterOcrService::class)->makePartial();
         $ocr->shouldReceive('extractText')->once()->andReturn($ocrText);
         app()->instance(ComplaintLetterOcrService::class, $ocr);
 
@@ -180,6 +180,28 @@ class FormalChargeFormTest extends TestCase
             ->assertSet('studentVerified', true)
             ->assertSet('studentName', $this->student->name)
             ->assertSet('offenseId', $this->offense->id);
+    }
+
+    public function test_formal_charge_ocr_selects_respondent_not_complainant(): void
+    {
+        Role::firstOrCreate(['name' => 'student']);
+        $respondent = User::factory()->student()->create([
+            'name' => 'Mike Paet',
+            'student_id' => '24-10005',
+        ]);
+        $respondent->assignRole('student');
+
+        $ocrText = 'I, Alaiza Clear Tejada (Student ID: 24-00006), report that I witnessed the student, Mike Paet (Student ID: 24-10005).';
+        $ocr = \Mockery::mock(ComplaintLetterOcrService::class)->makePartial();
+        $ocr->shouldReceive('extractText')->once()->andReturn($ocrText);
+        app()->instance(ComplaintLetterOcrService::class, $ocr);
+
+        Livewire::actingAs($this->staff)
+            ->test(FormalChargeForm::class)
+            ->set('complaintLetter', UploadedFile::fake()->image('complaint.png'))
+            ->assertSet('studentIdInput', '24-10005')
+            ->assertSet('studentName', 'Mike Paet')
+            ->assertSet('complainantName', 'Alaiza Clear Tejada');
     }
 
     // ─── Validation Failures ────────────────────────────────────────────────

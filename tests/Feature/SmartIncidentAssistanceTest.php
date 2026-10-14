@@ -86,7 +86,7 @@ class SmartIncidentAssistanceTest extends TestCase
             'title' => 'No ID',
         ]);
         $ocrText = "Complainant: Jane Doe\nStudent ID: {$this->student->student_id}\nIncident: Student entered campus without an ID card.";
-        $ocr = \Mockery::mock(ComplaintLetterOcrService::class);
+        $ocr = \Mockery::mock(ComplaintLetterOcrService::class)->makePartial();
         $ocr->shouldReceive('extractText')->once()->andReturn($ocrText);
         app()->instance(ComplaintLetterOcrService::class, $ocr);
 
@@ -118,6 +118,45 @@ class SmartIncidentAssistanceTest extends TestCase
         ]);
     }
 
+    public function test_ocr_distinguishes_the_reporting_party_from_the_respondent_student(): void
+    {
+        Role::firstOrCreate(['name' => 'student', 'guard_name' => 'web']);
+        $respondent = User::factory()->student()->create([
+            'name' => 'Mike Paet',
+            'student_id' => '24-10005',
+        ]);
+        $respondent->assignRole('student');
+
+        $offense = OffenseRule::factory()->minor()->create([
+            'code' => 'PR-101',
+            'title' => 'No ID',
+        ]);
+        $ocrText = 'I, Alaiza Clear Tejada (Student ID: 24-00006), report that I witnessed the student, Mike Paet (Student ID: 24-10005).';
+        $ocr = \Mockery::mock(ComplaintLetterOcrService::class)->makePartial();
+        $ocr->shouldReceive('extractText')->once()->andReturn($ocrText);
+        app()->instance(ComplaintLetterOcrService::class, $ocr);
+
+        Livewire::actingAs($this->staff)
+            ->test(SmartIncidentAssistance::class)
+            ->set('complaintLetter', UploadedFile::fake()->image('complaint.png'))
+            ->assertSet('extractedStudentId', '24-10005')
+            ->assertSet('extractedComplainant', 'Alaiza Clear Tejada')
+            ->call('continueWithSuggestion')
+            ->assertDispatched('open-quick-log-modal', function (string $event, array $params) use ($respondent): bool {
+                return $params['studentId'] === $respondent->student_id
+                    && $params['complainant'] === 'Alaiza Clear Tejada';
+            });
+    }
+
+    public function test_ocr_uses_the_signature_as_complainant_when_no_i_statement_is_present(): void
+    {
+        $ocrService = app(ComplaintLetterOcrService::class);
+        $letter = "Please take action against Mike Paet (Student ID: 24-10005).\n\nSincerely,\nAlaiza Clear Tejada (Student ID: 24-00006)";
+
+        $this->assertSame('24-10005', $ocrService->extractRespondentStudentId($letter));
+        $this->assertSame('Alaiza Clear Tejada', $ocrService->extractComplainantName($letter));
+    }
+
     public function test_ocr_major_intake_redirects_to_prefilled_form_without_exposing_text_in_url(): void
     {
         $offense = OffenseRule::factory()->create([
@@ -127,7 +166,7 @@ class SmartIncidentAssistanceTest extends TestCase
             'gravity' => 'major',
         ]);
         $ocrText = "Complainant: Jane Doe\nStudent ID: {$this->student->student_id}\nIncident: Academic dishonesty was reported.";
-        $ocr = \Mockery::mock(ComplaintLetterOcrService::class);
+        $ocr = \Mockery::mock(ComplaintLetterOcrService::class)->makePartial();
         $ocr->shouldReceive('extractText')->once()->andReturn($ocrText);
         app()->instance(ComplaintLetterOcrService::class, $ocr);
 
