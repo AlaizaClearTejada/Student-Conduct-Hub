@@ -52,7 +52,7 @@
 
                     <div>
                         <h4 class="text-sm font-semibold text-gray-900 mb-2">OCR Extracted Text (Searchable)</h4>
-                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-100 h-64 overflow-y-auto">
+                        <div class="hidden bg-gray-50 p-4 rounded-lg border border-gray-100 h-64 overflow-y-auto">
                             @if($case->searchable_text)
                                 <p class="text-gray-700 text-sm whitespace-pre-wrap font-mono">{{ $case->searchable_text }}</p>
                             @else
@@ -63,6 +63,8 @@
                             @endif
                         </div>
                     </div>
+
+                    <livewire:tribunal.case-ocr-text :case="$case" :key="'tribunal-case-ocr-'.$case->id" />
 
                     <!-- Pipeline State Machine Updates -->
                     @if(isset($case->status) && $case->status instanceof \App\Enums\CaseStatus)
