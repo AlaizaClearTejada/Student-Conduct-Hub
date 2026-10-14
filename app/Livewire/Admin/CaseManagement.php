@@ -543,6 +543,8 @@ class CaseManagement extends Component
 
         CaseWorkflowLog::logAction($case->id, Auth::id(), 'Status Changed', $reason);
 
+        $this->closeCase();
+
         session()->flash('success', "Case #{$case->case_tracking_number} moved to Under Investigation.");
     }
 
@@ -601,6 +603,8 @@ class CaseManagement extends Component
             'Hearing Held',
             'Conference/review conducted by OSDW'
         );
+
+        $this->closeCase();
 
         session()->flash('success', 'Conference marked as conducted for Case #'.$case->case_tracking_number);
     }

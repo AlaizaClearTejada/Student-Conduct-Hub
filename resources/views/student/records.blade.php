@@ -133,9 +133,13 @@
                                                 'Sanction Active' => 'bg-[#590004] text-[#f3f3f3]',
                                                 'Resolved' => 'bg-gray-100 text-gray-700',
                                                 'Appealed' => 'bg-blue-100 text-blue-800',
+                                                'Notice Sent' => 'bg-yellow-100 text-yellow-800',
+                                                'Under Investigation' => 'bg-indigo-100 text-indigo-800',
+                                                'Dismissed' => 'bg-slate-100 text-slate-700',
+                                                'Warning' => 'bg-orange-100 text-orange-800',
                                             ];
                                         @endphp
-                                        <span class="px-3 py-1 {{ $statusStyles[$record->status] }} rounded-lg text-xs font-bold">
+                                        <span class="px-3 py-1 {{ $statusStyles[$record->status] ?? 'bg-gray-100 text-gray-800' }} rounded-lg text-xs font-bold">
                                             {{ $record->status }}
                                         </span>
                                         <span class="px-3 py-1 {{ 
