@@ -28,7 +28,7 @@ class TribunalCaseRegistrar
                 'category' => $report->offense?->category ?? 'General',
                 'priority' => 'high',
                 'description' => $report->description,
-                'status' => CaseStatus::UNDER_FORMAL_INVESTIGATION,
+                'status' => CaseStatus::UNDER_INVESTIGATION,
                 'is_formal_charge' => true,
             ]
         );

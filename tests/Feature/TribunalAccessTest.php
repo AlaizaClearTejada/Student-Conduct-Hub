@@ -104,7 +104,7 @@ class TribunalAccessTest extends TestCase
             'category' => 'Academic Dishonesty',
             'priority' => 'high',
             'description' => 'Review the submitted evidence.',
-            'status' => CaseStatus::UNDER_INFORMAL_DISCUSSION->value,
+            'status' => CaseStatus::UNDER_INVESTIGATION->value,
         ])
             ->assertRedirect(route('tribunal.cases.index'));
 
@@ -112,7 +112,7 @@ class TribunalAccessTest extends TestCase
             'case_number' => 'TR-2026-001',
             'respondent_name' => 'Sample Student',
             'priority' => 'high',
-            'status' => CaseStatus::UNDER_INFORMAL_DISCUSSION->value,
+            'status' => CaseStatus::UNDER_INVESTIGATION->value,
             'is_formal_charge' => true,
         ]);
     }
@@ -134,6 +134,38 @@ class TribunalAccessTest extends TestCase
         $this->assertDatabaseMissing('tribunal_cases', [
             'case_number' => 'TR-2026-INVALID',
         ]);
+    }
+
+    public function test_case_creation_cannot_skip_the_initial_investigation_stage(): void
+    {
+        $administrator = $this->createAdministrator();
+
+        $this->withSession(['mfa_verified' => true])
+            ->actingAs($administrator)
+            ->post(route('tribunal.cases.store'), [
+                'case_number' => 'TR-2026-SKIP',
+                'title' => 'Skipped workflow case',
+                'priority' => 'normal',
+                'status' => CaseStatus::HEARING_SCHEDULED->value,
+            ])
+            ->assertSessionHasErrors('status');
+
+        $this->assertDatabaseMissing('tribunal_cases', [
+            'case_number' => 'TR-2026-SKIP',
+        ]);
+    }
+
+    public function test_case_status_enum_enforces_the_manual_transition_sequence(): void
+    {
+        $this->assertSame([CaseStatus::NOTICE_ISSUED], CaseStatus::UNDER_INVESTIGATION->validTransitions());
+        $this->assertSame([CaseStatus::HEARING_SCHEDULED], CaseStatus::NOTICE_ISSUED->validTransitions());
+        $this->assertSame([CaseStatus::RESOLUTION_DRAFTED], CaseStatus::HEARING_SCHEDULED->validTransitions());
+        $this->assertSame(
+            [CaseStatus::CLOSED, CaseStatus::APPEALED],
+            CaseStatus::RESOLUTION_DRAFTED->validTransitions()
+        );
+        $this->assertSame([], CaseStatus::CLOSED->validTransitions());
+        $this->assertSame([], CaseStatus::APPEALED->validTransitions());
     }
 
     public function test_administrator_can_upload_view_and_transition_a_case_document(): void
@@ -177,17 +209,38 @@ class TribunalAccessTest extends TestCase
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
 
-        $this->patch(route('tribunal.cases.updateStatus', $case), [
-            'status' => CaseStatus::UNDER_FORMAL_INVESTIGATION->value,
-        ])->assertRedirect();
-
-        $this->assertSame(CaseStatus::UNDER_FORMAL_INVESTIGATION, $case->refresh()->status);
+        $this->get(route('tribunal.cases.show', $case))
+            ->assertSee('value="notice_issued"', false)
+            ->assertDontSee('value="resolution_drafted"', false);
 
         $this->patch(route('tribunal.cases.updateStatus', $case), [
-            'status' => CaseStatus::CASE_RESOLVED->value,
+            'status' => CaseStatus::RESOLUTION_DRAFTED->value,
         ])->assertRedirect()->assertSessionHas('error');
 
-        $this->assertSame(CaseStatus::UNDER_FORMAL_INVESTIGATION, $case->refresh()->status);
+        $this->assertSame(CaseStatus::UNDER_INVESTIGATION, $case->refresh()->status);
+
+        foreach ([
+            CaseStatus::NOTICE_ISSUED,
+            CaseStatus::HEARING_SCHEDULED,
+            CaseStatus::RESOLUTION_DRAFTED,
+        ] as $nextStatus) {
+            $this->patch(route('tribunal.cases.updateStatus', $case), [
+                'status' => $nextStatus->value,
+            ])->assertRedirect()->assertSessionHas('success');
+
+            $this->assertSame($nextStatus, $case->refresh()->status);
+        }
+
+        $this->get(route('tribunal.cases.show', $case))
+            ->assertSee('value="closed"', false)
+            ->assertSee('value="appealed"', false);
+
+        $this->patch(route('tribunal.cases.updateStatus', $case), [
+            'status' => CaseStatus::APPEALED->value,
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $this->assertSame(CaseStatus::APPEALED, $case->refresh()->status);
+        $this->assertSame([], $case->status->validTransitions());
     }
 
     public function test_tribunal_lists_only_major_cases_and_formal_charges_and_blocks_minor_case_routes(): void
@@ -284,7 +337,7 @@ class TribunalAccessTest extends TestCase
         $this->get(route('tribunal.cases.show', $minorCase))->assertNotFound();
         $this->get(route('tribunal.cases.document', $minorCase))->assertNotFound();
         $this->patch(route('tribunal.cases.updateStatus', $minorCase), [
-            'status' => CaseStatus::UNDER_FORMAL_INVESTIGATION->value,
+            'status' => CaseStatus::UNDER_INVESTIGATION->value,
         ])->assertNotFound();
 
         $this->seed(RoleSeeder::class);

@@ -47,7 +47,7 @@ class TribunalController extends Controller
             'category' => ['nullable', 'string', 'max:100'],
             'priority' => ['required', Rule::in(['low', 'normal', 'high', 'urgent'])],
             'description' => ['nullable', 'string'],
-            'status' => ['required', Rule::enum(CaseStatus::class)],
+            'status' => ['required', Rule::in([CaseStatus::UNDER_INVESTIGATION->value])],
         ]);
 
         TribunalCase::query()->create([
@@ -122,7 +122,7 @@ class TribunalController extends Controller
             );
 
             if (
-                in_array($newStatus, [CaseStatus::UNDER_FORMAL_INVESTIGATION, CaseStatus::CASE_RESOLVED], true)
+                in_array($newStatus, [CaseStatus::UNDER_INVESTIGATION, CaseStatus::CLOSED], true)
                 && in_array($violationRecord->status, ['Pending Review', 'Notice Sent'], true)
             ) {
                 $violationRecord->update(['status' => 'Under Investigation']);

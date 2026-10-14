@@ -97,6 +97,54 @@ class ReportExportTest extends TestCase
         $this->assertSame('Tribunal', $record->investigation_type);
     }
 
+    public function test_accepting_a_report_reuses_an_existing_violation_record_with_the_same_tracking_number(): void
+    {
+        $majorOffense = OffenseRule::factory()->create([
+            'severity_level' => 'Major',
+            'gravity' => 'major',
+        ]);
+        $report = IncidentReport::factory()->submitted()->create([
+            'reporter_id' => $this->staff->id,
+            'student_id' => $this->student->id,
+            'offense_id' => $majorOffense->id,
+            'description' => 'Updated incident details from the report.',
+        ]);
+        $existingRecord = ViolationRecord::factory()->create([
+            'case_tracking_number' => $report->tracking_number,
+            'student_id' => $this->student->id,
+            'offense_id' => $majorOffense->id,
+            'reported_by' => $this->staff->id,
+            'offense_count' => 1,
+            'status' => 'Pending Review',
+        ]);
+
+        Livewire::actingAs($this->admin)
+            ->test(CaseManagement::class)
+            ->call('openAcceptModal', $report->id)
+            ->call('acceptReport')
+            ->assertHasNoErrors();
+
+        $this->assertSame(
+            1,
+            ViolationRecord::query()
+                ->where('case_tracking_number', $report->tracking_number)
+                ->count()
+        );
+        $this->assertSame($existingRecord->id, ViolationRecord::query()
+            ->where('case_tracking_number', $report->tracking_number)
+            ->value('id'));
+        $this->assertDatabaseHas('violation_records', [
+            'id' => $existingRecord->id,
+            'incident_description' => 'Updated incident details from the report.',
+            'offense_count' => 1,
+            'investigation_type' => 'Tribunal',
+        ]);
+        $this->assertDatabaseHas('tribunal_cases', [
+            'case_number' => $report->tracking_number,
+            'violation_record_id' => $existingRecord->id,
+        ]);
+    }
+
     public function test_assigning_a_case_to_sdt_adds_it_to_the_tribunal_pipeline(): void
     {
         $majorOffense = OffenseRule::factory()->create([

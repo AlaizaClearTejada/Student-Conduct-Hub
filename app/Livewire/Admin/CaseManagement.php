@@ -319,7 +319,7 @@ class CaseManagement extends Component
                 'category' => $offense?->category ?? 'General',
                 'priority' => $offense?->gravity === 'major' ? 'high' : 'normal',
                 'description' => $this->selectedCase->incident_description,
-                'status' => \App\Enums\CaseStatus::UNDER_FORMAL_INVESTIGATION,
+                'status' => \App\Enums\CaseStatus::UNDER_INVESTIGATION,
                 'is_formal_charge' => false,
                 'document_path' => $evidence?->file_path,
                 'document_disk' => 'local',
@@ -505,6 +505,47 @@ class CaseManagement extends Component
         $record = DB::transaction(function () use ($report, $offense, $tribunalCase, $investigationType): ViolationRecord {
             User::query()->whereKey($report->student_id)->lockForUpdate()->firstOrFail();
 
+            $caseTrackingNumbers = collect([
+                $tribunalCase?->case_number,
+                $report->tracking_number,
+            ])->filter()->unique()->values();
+
+            $record = $tribunalCase?->violation_record_id
+                ? ViolationRecord::query()->lockForUpdate()->find($tribunalCase->violation_record_id)
+                : null;
+            $record ??= ViolationRecord::query()
+                ->whereIn('case_tracking_number', $caseTrackingNumbers)
+                ->lockForUpdate()
+                ->first();
+
+            if ($record !== null) {
+                $record->update([
+                    'student_id' => $report->student_id,
+                    'offense_id' => $report->offense_id,
+                    'reported_by' => $report->reporter_id,
+                    'status' => $record->status ?: 'Pending Review',
+                    'investigation_type' => $investigationType,
+                    'incident_description' => $report->description,
+                    'date_of_incident' => $this->acceptDateOfIncident,
+                    'charge_filed_date' => $record->charge_filed_date ?? now()->toDateString(),
+                    'answer_deadline' => $record->answer_deadline ?? now()->addWeekdays(5)->toDateString(),
+                    'offense_count' => $record->offense_count ?: 1,
+                    'applied_sanction' => $record->applied_sanction
+                        ?: $offense?->getSanctionForOffenseCount(1)
+                        ?: $offense?->standard_sanction
+                        ?: '',
+                ]);
+
+                return $record;
+            }
+
+            $caseTrackingNumber = $caseTrackingNumbers->first();
+
+            if (! filled($caseTrackingNumber)
+                || ViolationRecord::query()->where('case_tracking_number', $caseTrackingNumber)->exists()) {
+                $caseTrackingNumber = ViolationRecord::generateCaseTrackingNumber();
+            }
+
             $offenseCount = app(\App\Services\OffenseProgressionService::class)
                 ->nextCount($report->student_id, $report->offense_id);
             $appliedSanction = $offense?->getSanctionForOffenseCount($offenseCount)
@@ -512,7 +553,7 @@ class CaseManagement extends Component
                 ?? '';
 
             return ViolationRecord::create([
-                'case_tracking_number' => $tribunalCase?->case_number ?? ViolationRecord::generateCaseTrackingNumber(),
+                'case_tracking_number' => $caseTrackingNumber,
                 'student_id' => $report->student_id,
                 'offense_id' => $report->offense_id,
                 'offense_count' => $offenseCount,
@@ -568,7 +609,7 @@ class CaseManagement extends Component
                     'category' => $offense?->category ?? 'General',
                     'priority' => $offense?->gravity === 'major' ? 'high' : 'normal',
                     'description' => $report->description,
-                    'status' => \App\Enums\CaseStatus::UNDER_FORMAL_INVESTIGATION,
+                    'status' => \App\Enums\CaseStatus::UNDER_INVESTIGATION,
                     'is_formal_charge' => $report->report_type === 'Formal Charge',
                     'document_path' => $tribunalDocumentPath,
                     'document_disk' => 'local',

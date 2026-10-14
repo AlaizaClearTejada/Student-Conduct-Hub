@@ -73,8 +73,15 @@ class TribunalCase extends Model
 
     public function transitionTo(\App\Enums\CaseStatus $newStatus): void
     {
-        if (! in_array($newStatus, $this->status->validTransitions(), true)) {
-            throw new \Exception("Invalid status transition from {$this->status->value} to {$newStatus->value}");
+        $currentStatus = $this->status;
+
+        if (! $currentStatus instanceof \App\Enums\CaseStatus
+            || ! in_array($newStatus, $currentStatus->validTransitions(), true)) {
+            $currentStatusValue = $currentStatus instanceof \App\Enums\CaseStatus
+                ? $currentStatus->value
+                : (string) $currentStatus;
+
+            throw new \InvalidArgumentException("Invalid status transition from {$currentStatusValue} to {$newStatus->value}");
         }
 
         $this->update(['status' => $newStatus]);

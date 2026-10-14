@@ -41,10 +41,9 @@
             <div>
                 <label for="status" class="block text-sm font-medium text-gray-700">Initial Status</label>
                 <select id="status" name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-mahogany focus:ring-mahogany sm:text-sm" required>
-                    <option value="under_informal_discussion" {{ old('status') == 'under_informal_discussion' ? 'selected' : '' }}>Under Informal Discussion</option>
-                    <option value="under_formal_investigation" {{ old('status') == 'under_formal_investigation' ? 'selected' : '' }}>Under Formal Investigation</option>
-                    <option value="resolution_drafted" {{ old('status') == 'resolution_drafted' ? 'selected' : '' }}>Resolution Drafted</option>
-                    <option value="case_resolved" {{ old('status') == 'case_resolved' ? 'selected' : '' }}>Case Resolved</option>
+                    <option value="{{ \App\Enums\CaseStatus::UNDER_INVESTIGATION->value }}" selected>
+                        {{ ucwords(str_replace('_', ' ', \App\Enums\CaseStatus::UNDER_INVESTIGATION->value)) }}
+                    </option>
                 </select>
                 @error('status')
                     <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
