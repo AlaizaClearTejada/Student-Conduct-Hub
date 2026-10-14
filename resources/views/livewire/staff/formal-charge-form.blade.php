@@ -20,10 +20,11 @@
 
                 {{-- Student ID (auto-fetch trigger) --}}
                 <div class="col-span-1 md:col-span-2">
-                    <label for="studentIdInput" class="block text-sm font-bold text-[#250001] mb-1">
+                    @livewire('staff.student-lookup', ['initialStudentId' => $studentIdInput], key('formal-charge-student-lookup'))
+                    <label for="studentIdInput" class="hidden">
                         Student ID No. <span class="text-[#a50104]">*</span>
                     </label>
-                    <div class="relative">
+                    <div class="relative hidden">
                         <input
                             wire:model.live.debounce.500ms="studentIdInput"
                             x-on:input="$el.value = $el.value.replace(/\D/g, '').slice(0, 7).replace(/^(\d{2})(?=\d)/, '$1-')"
@@ -43,6 +44,24 @@
                             </svg>
                         </div>
                     </div>
+
+                    {{-- Program --}}
+                    <div class="col-span-1 md:col-span-2">
+                        <label for="program" class="block text-sm font-bold text-[#250001] mb-1">Program</label>
+                        <input
+                            wire:model="program"
+                            id="program"
+                            type="text"
+                            readonly
+                            class="w-full rounded-lg border border-gray-300 bg-gray-100 px-4 py-3 text-gray-700"
+                        >
+                    </div>
+
+                    @if($ocrExtractedText !== '')
+                        <div class="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                            Complaint letter text was extracted and added to the incident description. Verify the text and student identity before filing.
+                        </div>
+                    @endif
 
                     {{-- Verification badge --}}
                     @if ($studentVerified)
@@ -158,6 +177,23 @@
                         <p class="text-xs text-[#590004] font-medium">Crucial: This email will be used to send the official Notice of Hearing and final appeal instructions to the student.</p>
                     </div>
                     @error('email')
+                        <p class="mt-1 text-xs font-bold text-[#a50104]">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div class="col-span-1 md:col-span-2">
+                    <label for="complainantName" class="block text-sm font-bold text-[#250001] mb-1">
+                        Complainant <span class="text-gray-500">(Optional)</span>
+                    </label>
+                    <input
+                        wire:model="complainantName"
+                        type="text"
+                        id="complainantName"
+                        maxlength="255"
+                        placeholder="Name extracted from complaint letter, if available"
+                        class="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#590004] focus:ring-2 focus:ring-[#590004]"
+                    >
+                    @error('complainantName')
                         <p class="mt-1 text-xs font-bold text-[#a50104]">{{ $message }}</p>
                     @enderror
                 </div>

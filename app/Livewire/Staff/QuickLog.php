@@ -28,6 +28,8 @@ class QuickLog extends Component
 
     public string $violationSearch = '';
 
+    public string $complainantName = '';
+
     #[Validate('required|string|min:10')]
     public $description = '';
 
@@ -35,6 +37,14 @@ class QuickLog extends Component
     public $studentInitials = '';
 
     public $studentProgram = '';
+
+    public string $studentName = '';
+
+    public string $studentCollege = '';
+
+    public string $studentYearLevel = '';
+
+    public string $studentSection = '';
 
     public $studentVerified = false;
 
@@ -65,22 +75,50 @@ class QuickLog extends Component
      * Open the quick log modal (can be called from parent or event).
      */
     #[On('open-quick-log-modal')]
-    public function openModal(): void
+    public function openModal(?int $offenseId = null, ?string $description = null, ?string $studentId = null, ?string $complainant = null): void
     {
         $this->showModal = true;
         $this->reset([
             'studentId',
             'offenseId',
             'violationSearch',
+            'complainantName',
             'description',
             'studentInitials',
             'studentProgram',
+            'studentName',
+            'studentCollege',
+            'studentYearLevel',
+            'studentSection',
             'studentVerified',
             'offenseCount',
             'offenseOrdinal',
             'nextSanction',
             'offensePreview',
         ]);
+
+        if ($studentId !== null) {
+            $this->studentId = $studentId;
+            $this->updatedStudentId();
+            $this->dispatch('prefill-student-lookup', studentId: $studentId);
+        } else {
+            $this->dispatch('reset-student-lookup');
+        }
+
+        if ($offenseId !== null) {
+            $offense = OffenseRule::query()->active()->where('gravity', 'minor')->findOrFail($offenseId);
+            $this->offenseId = (string) $offense->id;
+            $this->violationSearch = $offense->title;
+            $this->refreshOffenseProgression();
+        }
+
+        if ($description !== null) {
+            $this->description = $description;
+        }
+
+        if ($complainant !== null) {
+            $this->complainantName = $complainant;
+        }
     }
 
     /**
@@ -93,9 +131,14 @@ class QuickLog extends Component
             'studentId',
             'offenseId',
             'violationSearch',
+            'complainantName',
             'description',
             'studentInitials',
             'studentProgram',
+            'studentName',
+            'studentCollege',
+            'studentYearLevel',
+            'studentSection',
             'studentVerified',
             'offenseCount',
             'offenseOrdinal',
@@ -113,6 +156,10 @@ class QuickLog extends Component
         $this->studentVerified = false;
         $this->studentInitials = '';
         $this->studentProgram = '';
+        $this->studentName = '';
+        $this->studentCollege = '';
+        $this->studentYearLevel = '';
+        $this->studentSection = '';
         $this->offenseId = '';
         $this->offensePreview = [];
         $this->offenseCount = 1;
@@ -137,9 +184,36 @@ class QuickLog extends Component
 
             // Get program (you may need to adjust this based on your User model)
             $this->studentProgram = $student->program ?? 'Unknown Program';
+            $this->studentName = $student->name;
+            $this->studentCollege = $student->college ?? '';
+            $this->studentYearLevel = $student->year_level ?? '';
+            $this->studentSection = $student->section ?? '';
 
             $this->studentVerified = true;
         }
+    }
+
+    #[On('staff-student-selected')]
+    public function useSelectedStudent(int $userId): void
+    {
+        $student = User::query()->role('student')->findOrFail($userId);
+        $studentId = (string) $student->student_id;
+
+        if ($this->studentId !== $studentId || ! $this->studentVerified) {
+            $this->studentId = $studentId;
+            $this->updatedStudentId();
+
+            return;
+        }
+
+        $this->refreshOffenseProgression();
+    }
+
+    #[On('staff-student-lookup-cleared')]
+    public function clearSelectedStudent(): void
+    {
+        $this->studentId = '';
+        $this->updatedStudentId();
     }
 
     public function updatedOffenseId(): void
@@ -245,6 +319,7 @@ class QuickLog extends Component
                 Rule::exists('offense_rules', 'id')->where('gravity', 'minor')->where('is_active', true),
             ],
             'description' => ['required', 'string', 'min:10'],
+            'complainantName' => ['nullable', 'string', 'max:255'],
         ], [
             'studentId.regex' => 'Student ID must follow the format 24-00005.',
             'studentId.exists' => 'The selected student ID is invalid.',
@@ -267,6 +342,7 @@ class QuickLog extends Component
             'student_id' => $student->id,
             'offense_id' => $validated['offenseId'],
             'report_type' => 'Quick Log',
+            'complainant_name' => $validated['complainantName'] ?? null,
             'description' => $validated['description'],
             'evidence_path' => null, // Quick logs don't require evidence
             'status' => 'Submitted',

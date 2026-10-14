@@ -105,6 +105,7 @@ class StaffIncidentController extends Controller
             'student_id' => 'required|exists:users,id',
             'offense_id' => 'required|exists:offense_rules,id',
             'report_type' => 'required|in:Quick Log,Formal Charge',
+            'complainant_name' => 'nullable|string|max:255',
             'description' => 'required|string|min:10',
             'evidence' => 'nullable|file|mimes:jpg,png,pdf|max:5120', // Max 5MB
         ]);
@@ -126,6 +127,7 @@ class StaffIncidentController extends Controller
             'student_id' => $validated['student_id'],
             'offense_id' => $validated['offense_id'],
             'report_type' => $validated['report_type'],
+            'complainant_name' => $validated['complainant_name'] ?? null,
             'description' => $validated['description'],
             'evidence_path' => $evidencePath,
             'recommended_violation' => $topRecommendation['violation'] ?? null,

@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -31,6 +32,8 @@ class FormalChargeForm extends Component
     public string $studentName = '';
 
     public string $college = '';
+
+    public string $program = '';
 
     public string $yearLevel = '';
 
@@ -51,6 +54,8 @@ class FormalChargeForm extends Component
     public ?int $offenseId = null;
 
     public string $incidentDescription = '';
+
+    public string $complainantName = '';
 
     public string $violationSearch = '';
 
@@ -88,10 +93,28 @@ class FormalChargeForm extends Component
             ->orderBy('code')
             ->get();
 
+        $intake = session()->pull('smart_incident_intake', []);
+        $studentId = is_array($intake) ? ($intake['student_id'] ?? null) : null;
+        $complainant = is_array($intake) ? ($intake['complainant'] ?? null) : null;
+        if (is_string($complainant)) {
+            $this->complainantName = mb_substr($complainant, 0, 255);
+        }
+
+        if (is_string($studentId) && preg_match('/^\d{2}-\d{5}$/', $studentId)) {
+            $this->studentIdInput = $studentId;
+            $this->updatedStudentIdInput();
+        }
+
+        $description = is_array($intake) ? ($intake['description'] ?? null) : null;
+        if (is_string($description)) {
+            $this->incidentDescription = mb_substr($description, 0, 5000);
+        }
+
         $offenseId = request()->integer('offense');
 
         if ($offenseId > 0) {
-            $this->offenseId = $offenseId;
+            $offense = OffenseRule::query()->active()->requiringTribunalReview()->find($offenseId);
+            $this->offenseId = $offense?->id;
             $this->refreshOffenseProgression();
         }
     }
@@ -117,6 +140,7 @@ class FormalChargeForm extends Component
         if ($studentId !== null) {
             $this->studentIdInput = $studentId;
             $this->updatedStudentIdInput();
+            $this->dispatch('prefill-student-lookup', studentId: $studentId);
         }
 
         $this->violationSearch = $this->ocrExtractedText;
@@ -156,6 +180,7 @@ class FormalChargeForm extends Component
         $this->studentDbId = null;
         $this->studentName = '';
         $this->college = '';
+        $this->program = '';
         $this->yearLevel = '';
         $this->section = '';
         $this->email = '';
@@ -176,12 +201,36 @@ class FormalChargeForm extends Component
             $this->studentDbId = $student->id;
             $this->studentName = $student->name;
             $this->college = $student->college ?? '';
+            $this->program = $student->program ?? '';
             $this->yearLevel = $student->year_level ?? '';
             $this->section = $student->section ?? '';
             $this->email = $student->email;
 
             $this->studentVerified = true;
         }
+    }
+
+    #[On('staff-student-selected')]
+    public function useSelectedStudent(int $userId): void
+    {
+        $student = User::query()->role('student')->findOrFail($userId);
+        $studentId = (string) $student->student_id;
+
+        if ($this->studentIdInput !== $studentId || ! $this->studentVerified) {
+            $this->studentIdInput = $studentId;
+            $this->updatedStudentIdInput();
+
+            return;
+        }
+
+        $this->refreshOffenseProgression();
+    }
+
+    #[On('staff-student-lookup-cleared')]
+    public function clearSelectedStudent(): void
+    {
+        $this->studentIdInput = '';
+        $this->updatedStudentIdInput();
     }
 
     public function updatedOffenseId(): void
@@ -228,6 +277,7 @@ class FormalChargeForm extends Component
             'email' => 'required|email',
             'offenseId' => 'required|integer|exists:offense_rules,id',
             'incidentDescription' => 'required|string|min:20',
+            'complainantName' => ['nullable', 'string', 'max:255'],
             'evidenceFile' => 'required|file|mimes:jpg,jpeg,png,pdf,mp4|max:10240',
             'certification' => 'accepted',
         ], [
@@ -261,6 +311,7 @@ class FormalChargeForm extends Component
             'student_id' => $this->studentDbId,
             'offense_id' => $this->offenseId,
             'report_type' => 'Formal Charge',
+            'complainant_name' => $this->complainantName !== '' ? $this->complainantName : null,
             'description' => $this->incidentDescription,
             'evidence_path' => $evidencePath,
             'status' => 'Submitted',

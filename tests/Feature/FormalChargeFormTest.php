@@ -84,8 +84,24 @@ class FormalChargeFormTest extends TestCase
             ->assertSet('studentName', $this->student->name)
             ->assertSet('email', $this->student->email)
             ->assertSet('college', 'COLLEGE OF INFORMATION AND COMPUTING SCIENCES')
+            ->assertSet('program', $this->student->program)
             ->assertSet('yearLevel', '2nd Year')
             ->assertSet('section', 'A');
+    }
+
+    public function test_selecting_a_student_from_lookup_populates_form_identity_fields(): void
+    {
+        Livewire::actingAs($this->staff)
+            ->test(FormalChargeForm::class)
+            ->dispatch('staff-student-selected', userId: $this->student->id)
+            ->assertSet('studentIdInput', $this->student->student_id)
+            ->assertSet('studentDbId', $this->student->id)
+            ->assertSet('studentName', $this->student->name)
+            ->assertSet('college', $this->student->college)
+            ->assertSet('program', $this->student->program)
+            ->assertSet('yearLevel', $this->student->year_level)
+            ->assertSet('section', $this->student->section)
+            ->assertSet('studentVerified', true);
     }
 
     public function test_entering_invalid_student_id_does_not_populate_fields(): void
@@ -114,6 +130,7 @@ class FormalChargeFormTest extends TestCase
             ->set('yearLevel', '2nd Year')
             ->set('section', 'A')
             ->set('email', $this->student->email)
+            ->set('complainantName', 'Jane Doe')
             ->set('offenseId', $this->offense->id)
             ->set('incidentDescription', 'The student was caught submitting a plagiarized research paper during the final exam week.')
             ->set('evidenceFile', $file)
@@ -125,6 +142,7 @@ class FormalChargeFormTest extends TestCase
             'reporter_id' => $this->staff->id,
             'student_id' => $this->student->id,
             'offense_id' => $this->offense->id,
+            'complainant_name' => 'Jane Doe',
             'report_type' => 'Formal Charge',
             'status' => 'Submitted',
         ]);
