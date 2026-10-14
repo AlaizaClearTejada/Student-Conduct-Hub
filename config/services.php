@@ -3,7 +3,9 @@
 return [
 
     'python' => [
-        'binary' => env('PYTHON_BINARY', 'python'),
+        'path' => env('PYTHON_PATH'),
+        'binary' => env('PYTHON_BINARY'),
+        'tesseract_cmd' => env('TESSERACT_CMD'),
     ],
 
     /*
