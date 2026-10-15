@@ -95,13 +95,15 @@ class StudentConductController extends Controller
         $pendingReviewCount = $violationRecords->where('status', 'Pending Review')->count();
         $resolvedCount = $violationRecords->where('status', 'Resolved')->count();
         $appealedCount = $violationRecords->where('status', 'Appealed')->count();
+        $noticeSentCount = $violationRecords->where('status', 'Notice Sent')->count();
 
         return view('student.records', compact(
             'violationRecords',
             'activeSanctionsCount',
             'pendingReviewCount',
             'resolvedCount',
-            'appealedCount'
+            'appealedCount',
+            'noticeSentCount'
         ));
     }
 

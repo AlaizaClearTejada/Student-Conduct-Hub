@@ -363,7 +363,7 @@
         </div>
 
         {{-- ====================== CASE DETAIL PANEL ====================== --}}
-        @if($selectedCase && !$showResolveCaseModal && !$showAssignSDTModal)
+        @if($selectedCase && !$showResolveCaseModal && !$showAssignSDTModal && !$showSendNoticeModal && !$showScheduleConferenceModal)
         <div class="fixed inset-0 z-50 overflow-y-auto" x-data x-init="document.body.classList.add('overflow-hidden')" x-on:close-case.window="$wire.closeCase()"
              x-on:keydown.escape.window="$wire.closeCase()">
             <div class="flex items-start justify-center min-h-screen pt-4 px-4 pb-20">
@@ -808,13 +808,13 @@
                                     $nextNotice = ($selectedCase->notice_count ?? 0) + 1;
                                     $ordinal = $nextNotice === 1 ? '1st' : ($nextNotice === 2 ? '2nd' : '3rd');
                                 @endphp
-                                <button wire:click="closeCase" x-on:click.defer="$nextTick(() => $wire.openSendNoticeModal({{ $selectedCase->id }}))" class="px-4 py-2 text-sm font-semibold text-white bg-inferno rounded-lg hover:bg-black-cherry transition-colors">
+                                <button wire:click="openSendNoticeModal({{ $selectedCase->id }})" class="px-4 py-2 text-sm font-semibold text-white bg-inferno rounded-lg hover:bg-black-cherry transition-colors">
                                     Send {{ $ordinal }} Notice to Student
                                 </button>
                             @endif
                             @if($selectedCase->status === 'Notice Sent')
                                 @if($selectedCase->student_answer_submitted_date || $selectedCase->isAnswerOverdue())
-                                    <button wire:click="closeCase" x-on:click.defer="$nextTick(() => $wire.advanceToInvestigation({{ $selectedCase->id }}))" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
+                                    <button wire:click="advanceToInvestigation({{ $selectedCase->id }})" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
                                         Move to Investigation
                                     </button>
                                 @else
@@ -824,20 +824,20 @@
                                 @endif
                             @elseif($selectedCase->status === 'Under Investigation')
                                 @if($selectedCase->conference_date && !$selectedCase->conference_held_at)
-                                    <button wire:click="closeCase" x-on:click.defer="$nextTick(() => $wire.markConferenceHeld({{ $selectedCase->id }}))" class="px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors">
+                                    <button wire:click="markConferenceHeld({{ $selectedCase->id }})" class="px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors">
                                         Mark Conference Held
                                     </button>
                                 @else
-                                    <button wire:click="closeCase" x-on:click.defer="$nextTick(() => $wire.openScheduleConferenceModal({{ $selectedCase->id }}))" class="px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors">
+                                    <button wire:click="openScheduleConferenceModal({{ $selectedCase->id }})" class="px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors">
                                         Schedule Conference
                                     </button>
                                 @endif
                                 @if($selectedCase->investigation_type === 'Tribunal' && !$selectedCase->assigned_to_sdt)
-                                    <button wire:click="closeCase" x-on:click.defer="$nextTick(() => $wire.openAssignSDTModal({{ $selectedCase->id }}))" class="px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors">
+                                    <button wire:click="openAssignSDTModal({{ $selectedCase->id }})" class="px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors">
                                         Assign Tribunal
                                     </button>
                                 @endif
-                                <button wire:click="closeCase" x-on:click.defer="$nextTick(() => $wire.openResolveCaseModal({{ $selectedCase->id }}))" class="px-4 py-2 text-sm font-semibold text-white bg-inferno rounded-lg hover:bg-black-cherry transition-colors">
+                                <button wire:click="openResolveCaseModal({{ $selectedCase->id }})" class="px-4 py-2 text-sm font-semibold text-white bg-inferno rounded-lg hover:bg-black-cherry transition-colors">
                                     Apply Sanction
                                 </button>
                             @endif
