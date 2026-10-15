@@ -167,7 +167,7 @@
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-medium text-gray-500">Total Cases</p>
+                            <p class="text-sm font-medium text-gray-500">Offense History Across Students</p>
                             <p class="text-3xl font-bold text-mahogany mt-1">{{ $statistics['total_cases'] }}</p>
                         </div>
                         <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
@@ -252,6 +252,7 @@
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" wire:click="sortBy('case_tracking_number')">Case #</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Offense</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Offense Level / Sanction</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" wire:click="sortBy('status')">Status</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Settled By</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sanction Imposed</th>
@@ -274,7 +275,11 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-4 py-3 text-sm text-gray-700 max-w-[200px] truncate" title="{{ $case->offenseRule?->title ?? '' }}">{{ $case->offenseRule?->title ?? 'N/A' }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-700 max-w-[200px] truncate" title="{{ $case->offenseRule?->title ?? '' }}">{{ $case->offenseRule?->title ?? 'N/A' }}                                </td>
+                                <td class="px-4 py-3 text-xs text-gray-700">
+                                    <span class="font-semibold">{{ (int) ($case->offense_count ?? 1) >= 3 ? '3rd Offense / Escalated' : \Illuminate\Support\Number::ordinal((int) ($case->offense_count ?? 1)).' Offense' }}</span>
+                                    <span class="mt-1 block text-gray-500">{{ $case->applied_sanction ?? 'Sanction pending' }}</span>
+                                </td>
                                 <td class="px-4 py-3">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                         {{ $case->status === 'Pending Review' ? 'bg-amber-100 text-amber-800' : '' }}
@@ -341,7 +346,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-4 py-12 text-center">
+                                <td colspan="9" class="px-4 py-12 text-center">
                                     <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                     <p class="text-gray-500">No cases found.</p>
                                 </td>
@@ -508,6 +513,52 @@
                                 </p>
                             </div>
                         </div>
+
+                        @if($selectedCase->appeal_decision === 'Approved')
+                            <div class="border-b border-green-200 bg-green-50 p-6">
+                                <h4 class="font-bold text-green-900">Appeal Approved</h4>
+                                <p class="mt-1 text-sm text-green-800">
+                                    {{ $selectedCase->appeal_decision_notes }}
+                                    <span class="block mt-1">Updated offense level: {{ $selectedCase->offense_count }} · Updated sanction: {{ $selectedCase->applied_sanction ?? 'No tier configured' }}</span>
+                                </p>
+                            </div>
+                        @elseif($selectedCase->status === 'Appealed')
+                            <form wire:submit.prevent="approveAppeal" class="space-y-4 border-b border-purple-200 bg-purple-50 p-6">
+                                <div>
+                                    <h4 class="font-bold text-purple-950">Approve Formal Appeal &amp; Adjust Offense Level</h4>
+                                    <p class="mt-1 text-sm text-purple-800">The case status remains unchanged. The selected level updates the sanction tier and future progression. The decision is recorded in the case workflow.</p>
+                                </div>
+                                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    <div>
+                                        <label for="appealOffenseCount" class="block text-sm font-semibold text-gray-700">Approved offense count</label>
+                                        <input id="appealOffenseCount" type="number" min="1" max="1000" wire:model="appealOffenseCount" class="mt-1 w-full rounded-lg border-gray-300 focus:border-inferno focus:ring-inferno">
+                                        @error('appealOffenseCount') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                    </div>
+                                    <div>
+                                        <label for="appealDecisionNotes" class="block text-sm font-semibold text-gray-700">Approval reason</label>
+                                        <textarea id="appealDecisionNotes" wire:model="appealDecisionNotes" rows="2" class="mt-1 w-full rounded-lg border-gray-300 focus:border-inferno focus:ring-inferno" placeholder="Record the formal appeal basis and determination."></textarea>
+                                        @error('appealDecisionNotes') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                    </div>
+                                </div>
+                                <button type="submit" wire:confirm="Approve this appeal and update the offense progression?" class="rounded-lg bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800">
+                                    Approve Appeal &amp; Apply Count
+                                </button>
+                            </form>
+                        @endif
+
+                        @if($selectedOffenseHistory)
+                            <div class="border-b border-gray-200 p-6">
+                                <h4 class="text-xs font-bold uppercase tracking-widest text-gray-500">Student History for This Offense</h4>
+                                <div class="mt-3 space-y-2">
+                                    @foreach($selectedOffenseHistory as $historyItem)
+                                        <div wire:key="admin-offense-history-{{ $historyItem['case_number'] }}" class="flex flex-wrap justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm">
+                                            <span class="font-medium text-gray-800">{{ $historyItem['offense_level'] }} · {{ $historyItem['case_number'] }} · {{ $historyItem['incident_date'] }}</span>
+                                            <span class="text-gray-600">{{ $historyItem['status'] }} · {{ $historyItem['sanction'] ?? 'Sanction pending' }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
 
                         {{-- Sanction Section --}}
                         @if($selectedCase->settled_by || $selectedCase->sanction_imposed_at || $selectedCase->action_taken)

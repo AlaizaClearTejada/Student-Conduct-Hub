@@ -46,19 +46,20 @@
                     
                     <!-- Student ID Field with Auto-Focus -->
                     <div>
-                        <label for="studentId" class="block text-sm font-bold text-gray-700 mb-2">
+                        @livewire('staff.student-lookup', key('quick-log-student-lookup'))
+                        <label for="studentId" class="hidden">
                             Student ID <span class="text-[#a50104]">*</span>
                         </label>
                         <input 
                             type="text" 
                             id="studentId" 
                             wire:model.live.debounce.500ms="studentId"
-                            x-init="$nextTick(() => $el.focus())"
+                            x-on:input="$el.value = $el.value.replace(/\D/g, '').slice(0, 7).replace(/^(\d{2})(?=\d)/, '$1-')"
                             inputmode="numeric"
                             pattern="[0-9]{2}-[0-9]{5}"
                             maxlength="8"
-                            placeholder="e.g., 24-00001"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#590004] focus:border-transparent transition-all @error('studentId') border-red-500 @enderror"
+                            placeholder="e.g., 24-00005"
+                            class="hidden"
                         >
                         @error('studentId')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -72,11 +73,16 @@
                                 </svg>
                                 <div class="flex-1">
                                     <span class="text-green-800 font-medium block">
-                                        Verified: <span class="font-bold">{{ $studentInitials }}</span> - {{ $studentProgram }}
+                                        Verified: <span class="font-bold">{{ $studentName }}</span> — {{ $studentId }}
                                     </span>
-                                    <span class="text-green-700 text-xs mt-0.5 block">
-                                        This will be recorded as the student's <strong>{{ $offenseOrdinal }} offense</strong>.
-                                    </span>
+                                    <span class="block text-green-700">{{ $studentCollege }} - {{ $studentProgram }}, {{ $studentYearLevel }} {{ $studentSection }}</span>
+                                    @if($offensePreview)
+                                        <span class="text-green-700 text-xs mt-0.5 block">
+                                            This will be recorded as the student's <strong>{{ $offenseOrdinal }} offense</strong>.
+                                        </span>
+                                    @else
+                                        <span class="text-green-700 text-xs mt-0.5 block">Select an offense to view this student's history and next sanction tier.</span>
+                                    @endif
                                 </div>
                             </div>
                         @elseif($studentId && !$studentVerified)
@@ -98,6 +104,59 @@
                         </div>
                     </div>
 
+                    <div>
+                        <label for="complainantName" class="block text-sm font-bold text-gray-700 mb-2">
+                            Complainant <span class="text-gray-500">(Optional)</span>
+                        </label>
+                        <input
+                            id="complainantName"
+                            type="text"
+                            wire:model="complainantName"
+                            maxlength="255"
+                            placeholder="Name extracted from complaint letter, if available"
+                            class="w-full rounded-lg border border-gray-300 px-4 py-3 transition-all focus:border-transparent focus:ring-2 focus:ring-[#590004]"
+                        >
+                    </div>
+
+                    <!-- Handbook Offense Search -->
+                    <div>
+                        <label for="violationSearch" class="block text-sm font-bold text-gray-700 mb-2">
+                            Search Handbook Violations
+                        </label>
+                        <input
+                            type="search"
+                            id="violationSearch"
+                            wire:model.live.debounce.300ms="violationSearch"
+                            placeholder="Try keywords like NO ID or tardiness"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#590004] focus:border-transparent"
+                        >
+                        @if($this->offenseSuggestions->isNotEmpty())
+                            <div class="mt-2 overflow-hidden rounded-lg border border-gray-200 divide-y divide-gray-200">
+                                @foreach($this->offenseSuggestions as $suggestion)
+                                    <button
+                                        type="button"
+                                        wire:click="selectOffenseSuggestion({{ $suggestion->id }})"
+                                        wire:key="quick-offense-suggestion-{{ $suggestion->id }}"
+                                        class="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between gap-3"
+                                    >
+                                        <span>
+                                            <span class="block text-sm font-semibold text-gray-900">{{ $suggestion->code }} — {{ $suggestion->title }}</span>
+                                            <span class="text-xs text-gray-500">{{ $suggestion->category }}</span>
+                                        </span>
+                                        <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium {{ $suggestion->gravity === 'minor' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800' }}">
+                                            {{ $suggestion->gravity === 'minor' ? 'Minor Infraction' : 'Major Formal Charge' }}
+                                        </span>
+                                    </button>
+                                @endforeach
+                            </div>
+                        @elseif(mb_strlen(trim($violationSearch)) >= 2)
+                            <p class="mt-2 text-sm text-gray-500">No handbook violations matched those keywords.</p>
+                        @endif
+                        @error('violationSearch')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <!-- Offense Selection -->
                     <div>
                         <label for="offenseId" class="block text-sm font-bold text-gray-700 mb-2">
@@ -105,7 +164,7 @@
                         </label>
                         <select 
                             id="offenseId" 
-                            wire:model="offenseId"
+                            wire:model.live="offenseId"
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#590004] focus:border-transparent transition-all @error('offenseId') border-red-500 @enderror"
                         >
                             <option value="">Select a minor offense...</option>
@@ -119,6 +178,10 @@
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
+
+                    @if($offensePreview)
+                        @include('staff.partials.offense-progression-preview', ['offensePreview' => $offensePreview])
+                    @endif
 
                     <!-- Brief Description -->
                     <div>

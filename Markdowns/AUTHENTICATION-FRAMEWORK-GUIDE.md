@@ -12,7 +12,7 @@ The Authentication Framework implements multi-layered security controls to prote
 
 * 👤 **Dual-Credential Login:** Supports both email addresses and alphanumeric usernames (`jsalvador`).
 * 🔒 **Forced Password Reset on First Login:** Blocks dashboard access for temporary/provisioned accounts until a strong password is created.
-* 🛡️ **Multi-Factor Authentication (MFA):** Email OTP verification for privileged roles (**Administrator**, **Tribunal Panel**, **System Auditor**).
+* 🛡️ **Multi-Factor Authentication (MFA):** Email OTP verification for privileged roles (**Administrator** and **System Auditor**).
 * ⏳ **Session & Rate Control:** 30-minute inactivity session timeout and 5-attempt rate limiting per minute per IP address.
 * 📊 **Security Audit Trail:** Complete logging of authentication events (`login_success`, `login_failed`, `lockout`, `mfa_success`, `mfa_failed`, `forced_password_reset_completed`, `logout`).
 
@@ -62,7 +62,7 @@ The Authentication Framework implements multi-layered security controls to prote
 
 | Requirement | Specification & Implementation |
 | :--- | :--- |
-| **Mandatory MFA Roles** | **Administrator**, **Tribunal Panel** (`role_type: tribunal_panel`), and **System Auditor** (`role_type: system_auditor`). |
+| **Mandatory MFA Roles** | **Administrator** (Spatie role), **System Auditor** (`role_type: system_auditor`), and users with `mfa_enabled`. |
 | **OTP Delivery Engine** | [`MfaOtpNotification.php`](file:///c:/MyXampp/htdocs/student-conduct-management-system/app/Notifications/MfaOtpNotification.php) delivers a 6-digit random code to the user's registered email address. |
 | **Code Expiration & Lockout** | OTP codes expire after **10 minutes** (`mfa_otp_expires_at`). Maximum of **3 retry attempts** per OTP before locking out current code ([`MfaController.php`](file:///c:/MyXampp/htdocs/student-conduct-management-system/app/Http/Controllers/Auth/MfaController.php)). |
 | **MFA Verification UI** | Interactive 6-digit split input box with real-time countdown timer and resend support ([`mfa-verify.blade.php`](file:///c:/MyXampp/htdocs/student-conduct-management-system/resources/views/auth/mfa-verify.blade.php)). |

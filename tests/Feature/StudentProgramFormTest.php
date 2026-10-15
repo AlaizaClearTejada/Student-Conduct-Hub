@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\Staff\StudentForm;
+use App\Mail\StudentCredentialsMail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -80,6 +81,8 @@ class StudentProgramFormTest extends TestCase
     {
         Mail::fake();
 
+        Mail::fake();
+
         Livewire::actingAs($this->staff)
             ->test(StudentForm::class)
             ->set('studentIdInput', '25-00002')
@@ -97,5 +100,10 @@ class StudentProgramFormTest extends TestCase
 
         $this->assertSame('student', $student->role_type);
         $this->assertTrue($student->hasRole('student'));
+        Mail::assertQueued(StudentCredentialsMail::class, fn (StudentCredentialsMail $mail): bool => $mail->student->is($student)
+            && preg_match('/[A-Z]/', $mail->password) === 1
+            && preg_match('/[0-9]/', $mail->password) === 1
+            && preg_match('/[!@#$%^&*]/', $mail->password) === 1
+            && strlen($mail->password) >= 8);
     }
 }

@@ -146,7 +146,7 @@ class User extends Authenticatable
      */
     public function hasMfaRequired(): bool
     {
-        $mandatoryRoleTypes = ['tribunal_panel', 'system_auditor'];
+        $mandatoryRoleTypes = ['system_auditor'];
 
         if (in_array($this->role_type, $mandatoryRoleTypes, true)) {
             return true;
@@ -165,7 +165,7 @@ class User extends Authenticatable
 
     public function canAccessTribunalModule(): bool
     {
-        return in_array($this->role_type, ['tribunal_panel', 'admin'], true);
+        return $this->can('access tribunal module');
     }
 
     /**

@@ -20,6 +20,7 @@ class IncidentReport extends Model
     protected $fillable = [
         'tracking_number',
         'reporter_id',
+        'complainant_name',
         'student_id',
         'offense_id',
         'report_type',

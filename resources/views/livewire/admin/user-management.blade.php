@@ -3,7 +3,7 @@
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
             <h1 class="text-2xl font-bold text-mahogany">Staff & User Management</h1>
-            <p class="text-gray-600">Manage administrator and staff accounts</p>
+            <p class="text-gray-600">Manage OSDW administrator and staff accounts</p>
         </div>
         <button wire:click="openCreateModal" class="inline-flex items-center gap-2 px-4 py-2.5 bg-inferno text-white font-medium rounded-lg hover:bg-black-cherry transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,6 +54,7 @@
                     <option value="">All Roles</option>
                     <option value="administrator">Administrator</option>
                     <option value="staff">Staff</option>
+                    <option value="student">Student</option>
                 </select>
             </div>
 
@@ -182,12 +183,6 @@
             </table>
         </div>
 
-        <!-- Pagination -->
-        @if($users->hasPages())
-            <div class="px-6 py-4 border-t border-gray-200">
-                {{ $users->links() }}
-            </div>
-        @endif
     </div>
 
     <!-- Create User Modal -->

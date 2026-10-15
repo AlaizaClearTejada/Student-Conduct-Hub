@@ -41,6 +41,10 @@ Route::get('dashboard', function () {
         return redirect()->route('student.dashboard');
     }
 
+    if ($user->canAccessTribunalModule()) {
+        return redirect()->route('tribunal.cases.index');
+    }
+
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -70,6 +74,7 @@ Route::middleware(['auth', 'role:staff|administrator'])->prefix('staff')->name('
     Route::get('/formal-charge', fn () => view('staff.formal-charge'))->name('formal-charge');
     Route::get('/report/create', [\App\Http\Controllers\StaffIncidentController::class, 'create'])->name('report.create');
     Route::post('/report', [\App\Http\Controllers\StaffIncidentController::class, 'store'])->name('report.store');
+    Route::get('/offense-history', [\App\Http\Controllers\StaffIncidentController::class, 'offenseHistory'])->name('offense-history');
 
     // Student Registration Management (Page-based with breadcrumbs)
     Route::get('/students', fn () => view('staff.students.index'))->name('students');
@@ -119,6 +124,8 @@ Route::middleware(['auth', 'role:administrator'])->prefix('admin')->name('admin.
 // Tribunal Module Routes - Strictly isolated
 Route::middleware(['auth', 'tribunal'])->prefix('dashboard/tribunal')->name('tribunal.')->group(function () {
     Route::get('/cases', [\App\Http\Controllers\TribunalController::class, 'index'])->name('cases.index');
+    Route::get('/cases/create', [\App\Http\Controllers\TribunalController::class, 'create'])->name('cases.create');
+    Route::post('/cases', [\App\Http\Controllers\TribunalController::class, 'store'])->name('cases.store');
     Route::post('/documents', [\App\Http\Controllers\TribunalDocumentController::class, 'upload'])->name('documents.upload');
     Route::get('/cases/{case}', [\App\Http\Controllers\TribunalController::class, 'show'])->name('cases.show');
     Route::get('/cases/{case}/document', [\App\Http\Controllers\TribunalController::class, 'document'])->name('cases.document');

@@ -1,4 +1,4 @@
-<div class="space-y-6">
+<div x-data class="space-y-6">
 
     {{-- ═══════════════════════════════════════════════════ --}}
     {{-- SECTION 1: Student Information                      --}}
@@ -20,15 +20,20 @@
 
                 {{-- Student ID (auto-fetch trigger) --}}
                 <div class="col-span-1 md:col-span-2">
-                    <label for="studentIdInput" class="block text-sm font-bold text-[#250001] mb-1">
+                    @livewire('staff.student-lookup', ['initialStudentId' => $studentIdInput], key('formal-charge-student-lookup'))
+                    <label for="studentIdInput" class="hidden">
                         Student ID No. <span class="text-[#a50104]">*</span>
                     </label>
-                    <div class="relative">
+                    <div class="relative hidden">
                         <input
                             wire:model.live.debounce.500ms="studentIdInput"
+                            x-on:input="$el.value = $el.value.replace(/\D/g, '').slice(0, 7).replace(/^(\d{2})(?=\d)/, '$1-')"
                             type="text"
                             id="studentIdInput"
-                            placeholder="e.g., 2023-1234"
+                            inputmode="numeric"
+                            pattern="[0-9]{2}-[0-9]{5}"
+                            maxlength="8"
+                            placeholder="e.g., 24-00005"
                             autocomplete="off"
                             class="w-full px-4 py-3 rounded-lg border @error('studentDbId') border-[#a50104] bg-red-50 @else border-gray-300 bg-[#f3f3f3] @enderror focus:ring-2 focus:ring-[#590004] focus:border-[#590004] transition-colors font-mono text-gray-900"
                         >
@@ -40,6 +45,24 @@
                         </div>
                     </div>
 
+                    {{-- Program --}}
+                    <div class="col-span-1 md:col-span-2">
+                        <label for="program" class="block text-sm font-bold text-[#250001] mb-1">Program</label>
+                        <input
+                            wire:model="program"
+                            id="program"
+                            type="text"
+                            readonly
+                            class="w-full rounded-lg border border-gray-300 bg-gray-100 px-4 py-3 text-gray-700"
+                        >
+                    </div>
+
+                    @if($ocrExtractedText !== '')
+                        <div class="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                            Complaint letter text was extracted and added to the incident description. Verify the text and student identity before filing.
+                        </div>
+                    @endif
+
                     {{-- Verification badge --}}
                     @if ($studentVerified)
                         <div wire:loading.remove wire:target="updatedStudentIdInput" class="mt-2 flex items-center gap-2 text-sm bg-green-50 border border-green-200 rounded-lg p-3">
@@ -49,7 +72,11 @@
                             <div class="flex-1">
                                 <span class="text-green-800 font-medium block">Identity Verified: <strong>{{ $studentName }}</strong></span>
                                 <span class="text-green-700 text-xs mt-0.5 block">
-                                    This will be recorded as the student's <strong>{{ \Illuminate\Support\Number::ordinal($offenseCount) }} offense</strong>.
+                                    @if($offensePreview)
+                                        This will be recorded as the student's <strong>{{ $offensePreview['next_level'] }}</strong>.
+                                    @else
+                                        Select an offense to view this student's history and next sanction tier.
+                                    @endif
                                 </span>
                             </div>
                         </div>
@@ -154,6 +181,23 @@
                     @enderror
                 </div>
 
+                <div class="col-span-1 md:col-span-2">
+                    <label for="complainantName" class="block text-sm font-bold text-[#250001] mb-1">
+                        Complainant <span class="text-gray-500">(Optional)</span>
+                    </label>
+                    <input
+                        wire:model="complainantName"
+                        type="text"
+                        id="complainantName"
+                        maxlength="255"
+                        placeholder="Name extracted from complaint letter, if available"
+                        class="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#590004] focus:ring-2 focus:ring-[#590004]"
+                    >
+                    @error('complainantName')
+                        <p class="mt-1 text-xs font-bold text-[#a50104]">{{ $message }}</p>
+                    @enderror
+                </div>
+
             </div>
         </div>
     </div>
@@ -177,11 +221,44 @@
 
             {{-- Offense --}}
             <div>
+                <label for="violationSearch" class="block text-sm font-bold text-[#250001] mb-1">
+                    Search Handbook Violations
+                </label>
+                <input
+                    wire:model.live.debounce.300ms="violationSearch"
+                    id="violationSearch"
+                    type="search"
+                    placeholder="Search keywords, e.g. academic dishonesty or plagiarism"
+                    class="w-full px-4 py-3 mb-3 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-[#590004] focus:border-[#590004] text-gray-900"
+                >
+                @if($this->offenseSuggestions->isNotEmpty())
+                    <div class="mb-4 overflow-hidden rounded-lg border border-gray-200 divide-y divide-gray-200">
+                        @foreach($this->offenseSuggestions as $suggestion)
+                            <button
+                                type="button"
+                                wire:click="selectOffenseSuggestion({{ $suggestion->id }})"
+                                wire:key="formal-offense-suggestion-{{ $suggestion->id }}"
+                                class="w-full px-4 py-3 text-left hover:bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+                            >
+                                <span>
+                                    <span class="font-semibold text-gray-900">{{ $suggestion->code }} — {{ $suggestion->title }}</span>
+                                    <span class="block text-xs text-gray-500">{{ $suggestion->category }}</span>
+                                </span>
+                                <span class="self-start sm:self-auto rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-800">
+                                    Major Formal Charge
+                                </span>
+                            </button>
+                        @endforeach
+                    </div>
+                @elseif(mb_strlen(trim($violationSearch)) >= 2)
+                    <p class="mb-4 text-sm text-gray-500">No matching major or severe handbook violations were found.</p>
+                @endif
+
                 <label for="offenseId" class="block text-sm font-bold text-[#250001] mb-1">
                     Select Major Offense <span class="text-[#a50104]">*</span>
                 </label>
                 <select
-                    wire:model="offenseId"
+                    wire:model.live="offenseId"
                     id="offenseId"
                     class="w-full px-4 py-3 rounded-lg border @error('offenseId') border-[#a50104] bg-red-50 @else border-gray-300 bg-white @enderror focus:ring-2 focus:ring-[#590004] focus:border-[#590004] transition-colors text-gray-900"
                 >
@@ -195,6 +272,36 @@
                 @error('offenseId')
                     <p class="mt-1 text-xs font-bold text-[#a50104]">{{ $message }}</p>
                 @enderror
+                @if($offensePreview)
+                    @include('staff.partials.offense-progression-preview', ['offensePreview' => $offensePreview])
+                @endif
+            </div>
+
+            {{-- Complaint Letter OCR --}}
+            <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 sm:p-5">
+                <label for="complaintLetter" class="block text-sm font-bold text-[#250001] mb-1">
+                    Scan a Written Complaint Letter
+                </label>
+                <p class="mb-3 text-sm text-gray-600">
+                    Upload a JPG, PNG, or PDF scan to extract its text, look up a student ID, and suggest a matching major offense.
+                    Verify the extracted details before filing.
+                </p>
+                <input
+                    wire:model="complaintLetter"
+                    id="complaintLetter"
+                    type="file"
+                    accept="image/jpeg,image/png,application/pdf"
+                    class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-lg file:border-0 file:bg-[#590004] file:px-4 file:py-2 file:font-medium file:text-white hover:file:bg-[#250001]"
+                >
+                <div wire:loading wire:target="complaintLetter" class="mt-2 text-sm text-gray-600">Uploading complaint scan...</div>
+                @error('complaintLetter')
+                    <p class="mt-2 text-sm font-medium text-red-700">{{ $message }}</p>
+                @enderror
+                @if($ocrExtractedText)
+                    <div class="mt-3 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+                        Complaint text extracted. Description, student lookup (when an ID is found), and offense suggestion have been populated.
+                    </div>
+                @endif
             </div>
 
             {{-- Description --}}

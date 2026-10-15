@@ -8,7 +8,10 @@ use App\Models\OffenseRule;
 use App\Models\User;
 use App\Models\ViolationRecord;
 use App\Services\DecisionSupportService;
+use App\Services\OffenseProgressionService;
+use App\Services\TribunalCaseRegistrar;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -69,10 +72,25 @@ class StaffIncidentController extends Controller
             ->get();
 
         // Get all offense rules (for offense selection)
-        $offenseRules = OffenseRule::orderBy('code')
+        $offenseRules = OffenseRule::query()
+            ->active()
+            ->orderBy('code')
             ->get();
 
         return view('staff.report-create', compact('students', 'offenseRules'));
+    }
+
+    public function offenseHistory(Request $request, OffenseProgressionService $progression): JsonResponse
+    {
+        $validated = $request->validate([
+            'student_id' => 'required|integer|exists:users,id',
+            'offense_id' => 'required|integer|exists:offense_rules,id',
+        ]);
+
+        $student = User::role('student')->findOrFail($validated['student_id']);
+        $offense = OffenseRule::query()->active()->findOrFail($validated['offense_id']);
+
+        return response()->json($progression->preview($student->id, $offense));
     }
 
     /**
@@ -87,6 +105,7 @@ class StaffIncidentController extends Controller
             'student_id' => 'required|exists:users,id',
             'offense_id' => 'required|exists:offense_rules,id',
             'report_type' => 'required|in:Quick Log,Formal Charge',
+            'complainant_name' => 'nullable|string|max:255',
             'description' => 'required|string|min:10',
             'evidence' => 'nullable|file|mimes:jpg,png,pdf|max:5120', // Max 5MB
         ]);
@@ -108,6 +127,7 @@ class StaffIncidentController extends Controller
             'student_id' => $validated['student_id'],
             'offense_id' => $validated['offense_id'],
             'report_type' => $validated['report_type'],
+            'complainant_name' => $validated['complainant_name'] ?? null,
             'description' => $validated['description'],
             'evidence_path' => $evidencePath,
             'recommended_violation' => $topRecommendation['violation'] ?? null,
@@ -119,6 +139,7 @@ class StaffIncidentController extends Controller
 
         // 5. Trigger Notification to OSDW (Admin)
         Event::dispatch(new IncidentReported($report));
+        app(TribunalCaseRegistrar::class)->registerEligibleReport($report);
 
         return redirect()->route('staff.dashboard')
             ->with('success', 'Incident reported successfully. Tracking Number: '.$report->tracking_number);
@@ -136,8 +157,10 @@ class StaffIncidentController extends Controller
 
         // Eager load relationships
         $report->load(['student', 'offense', 'reporter']);
+        $offensePreview = app(OffenseProgressionService::class)
+            ->preview($report->student_id, $report->offense);
 
-        return view('staff.report-show', compact('report'));
+        return view('staff.report-show', compact('report', 'offensePreview'));
     }
 
     /**

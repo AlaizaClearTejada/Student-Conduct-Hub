@@ -33,7 +33,7 @@ new class extends Component
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" wire:navigate>
                         {{ __('Dashboard') }}
                     </x-nav-link>
-                    @if(auth()->check() && auth()->user()->role_type === 'tribunal_panel')
+                    @if(auth()->user()?->canAccessTribunalModule())
                     <x-nav-link :href="route('tribunal.cases.index')" :active="request()->routeIs('tribunal.cases.index')" wire:navigate>
                         {{ __('Tribunal Module') }}
                     </x-nav-link>
@@ -89,7 +89,7 @@ new class extends Component
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" wire:navigate>
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
-            @if(auth()->check() && auth()->user()->role_type === 'tribunal_panel')
+            @if(auth()->user()?->canAccessTribunalModule())
             <x-responsive-nav-link :href="route('tribunal.cases.index')" :active="request()->routeIs('tribunal.cases.index')" wire:navigate>
                 {{ __('Tribunal Module') }}
             </x-responsive-nav-link>

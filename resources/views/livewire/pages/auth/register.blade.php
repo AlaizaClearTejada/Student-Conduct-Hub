@@ -46,7 +46,7 @@ new #[Layout('layouts.guest')] class extends Component
         $this->resetValidation('student_id');
 
         if ($this->student_id !== '' && ! preg_match('/^\d{2}-\d{5}$/', $this->student_id)) {
-            $this->addError('student_id', 'Student ID must follow the format 00-00000');
+            $this->addError('student_id', 'Student ID must follow the format 24-00005.');
         }
     }
 
@@ -74,7 +74,7 @@ new #[Layout('layouts.guest')] class extends Component
         ];
 
         $validated = $this->validate($rules, [
-            'student_id.regex' => 'The Student ID format must be strictly 00-00000 (e.g., 24-00001).',
+            'student_id.regex' => 'Student ID must follow the format 24-00005.',
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
@@ -91,7 +91,7 @@ new #[Layout('layouts.guest')] class extends Component
     }
 }; ?>
 
-<div>
+<div x-data>
     <form wire:submit="register">
         <!-- Name -->
         <div>
@@ -102,7 +102,7 @@ new #[Layout('layouts.guest')] class extends Component
 
         <div class="mt-4">
             <x-input-label for="student_id" :value="__('Student ID')" />
-            <x-text-input wire:model.live.debounce.300ms="student_id" id="student_id" class="block mt-1 w-full" type="text" name="student_id" required inputmode="numeric" pattern="[0-9]{2}-[0-9]{5}" maxlength="8" placeholder="e.g., 24-00001" autocomplete="off" />
+            <x-text-input wire:model.live.debounce.300ms="student_id" x-on:input="$el.value = $el.value.replace(/\D/g, '').slice(0, 7).replace(/^(\d{2})(?=\d)/, '$1-')" id="student_id" class="block mt-1 w-full" type="text" name="student_id" required inputmode="numeric" pattern="[0-9]{2}-[0-9]{5}" maxlength="8" placeholder="e.g., 24-00005" autocomplete="off" />
             <x-input-error :messages="$errors->get('student_id')" class="mt-2" />
         </div>
 

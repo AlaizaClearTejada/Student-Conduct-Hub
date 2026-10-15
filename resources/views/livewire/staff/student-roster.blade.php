@@ -70,13 +70,15 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
                 <p class="text-base font-medium text-gray-500">
-                    @if ($search)
+                    @if ($showArchived)
+                        No archived student accounts found.
+                    @elseif ($search)
                         No students found matching &ldquo;{{ $search }}&rdquo;
                     @else
                         No students registered yet.
                     @endif
                 </p>
-                @if (! $search)
+                @if (! $showArchived && ! $search)
                     <button wire:click="openCreateForm" class="mt-4 text-sm font-semibold text-[#590004] hover:text-[#a50104] transition-colors">
                         + Add First Student
                     </button>
@@ -84,7 +86,7 @@
             </div>
         @else
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-100">
+                <table class="w-full min-w-[48rem] divide-y divide-gray-100">
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Student ID</th>
@@ -198,7 +200,7 @@
                             <div>
                                 <p class="font-semibold mb-1">Expected Excel/CSV columns:</p>
                                 <p class="font-mono text-xs">Code, Name, Course, Year, Section, Email</p>
-                                <p class="mt-2 text-xs text-blue-700 font-medium">All columns except <span class="font-mono">Email</span> are required. Email is auto-generated if blank. Duplicate student IDs (Code) are skipped.</p>
+                                <p class="mt-2 text-xs text-blue-700 font-medium">Code, Name, Course, Year, and Section are required. College can be inferred from Course; Email is generated from the Student ID when blank. Duplicate IDs are skipped.</p>
                             </div>
                             <a href="{{ route('staff.students.import-template') }}"
                                class="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"

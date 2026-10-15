@@ -94,6 +94,56 @@
             </div>
         </div>
 
+        <section class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+                <h3 class="text-lg font-bold text-[#250001]">My Conduct &amp; Offense Tracker</h3>
+                <p class="mt-1 text-sm text-gray-600">Your offense progression and corresponding sanction schedule.</p>
+            </div>
+
+            @if($offenseTracker->isEmpty())
+                <p class="p-6 text-sm text-gray-600">There are no conduct offenses in your history.</p>
+            @else
+                <div class="p-6 space-y-6">
+                    <div class="flex flex-wrap gap-3">
+                        @foreach($activeCountsByCategory as $category => $count)
+                            <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ $category }}</p>
+                                <p class="mt-1 text-xl font-bold text-[#250001]">{{ $count }} <span class="text-sm font-medium text-gray-500">active</span></p>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        @foreach($offenseTracker as $entry)
+                            <article wire:key="offense-tracker-{{ $entry['offense']->id }}" class="rounded-xl border border-gray-200 p-5">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ $entry['offense']->category }} · {{ $entry['offense']->code }}</p>
+                                        <h4 class="mt-1 font-bold text-[#250001]">{{ $entry['offense']->title }}</h4>
+                                    </div>
+                                    <span class="shrink-0 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">{{ $entry['offense_level'] }}</span>
+                                </div>
+                                <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <dt class="text-gray-500">Occurrences</dt>
+                                        <dd class="font-semibold text-gray-900">{{ $entry['occurrence_count'] }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-gray-500">Active records</dt>
+                                        <dd class="font-semibold text-gray-900">{{ $entry['active_count'] }}</dd>
+                                    </div>
+                                </dl>
+                                <div class="mt-4 rounded-lg bg-red-50 p-3">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-red-700">Assigned sanction</p>
+                                    <p class="mt-1 text-sm font-medium text-red-900">{{ $entry['sanction'] ?: 'Sanction to be determined' }}</p>
+                                </div>
+                            </article>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        </section>
+
         <div id="violations-table" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="px-8 py-5 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                 <h3 class="text-lg font-bold text-[#250001]">Recent Disciplinary Records</h3>

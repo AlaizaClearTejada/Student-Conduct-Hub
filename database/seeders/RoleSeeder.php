@@ -28,6 +28,7 @@ class RoleSeeder extends Seeder
             'assign discipline',
             'view own incidents',
             'appeal incidents',
+            'access tribunal module',
         ];
 
         foreach ($permissions as $permission) {
@@ -55,7 +56,7 @@ class RoleSeeder extends Seeder
             'assign discipline',
         ]);
 
-        // Administrator role - all permissions
+        // Administrator role (OSDW Admin) - all permissions, including Tribunal access.
         $adminRole = Role::firstOrCreate(['name' => 'administrator', 'guard_name' => 'web']);
         $adminRole->syncPermissions(Permission::all());
     }

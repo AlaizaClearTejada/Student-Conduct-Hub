@@ -173,22 +173,12 @@ class AuthSecurityFrameworkTest extends TestCase
     // Multi-Factor Authentication (MFA)
     // -------------------------------------------------------
 
-    public function test_admin_requires_mfa(): void
+    public function test_administrator_requires_mfa(): void
     {
-        $user = User::factory()->create([
+        $user = User::factory()->administrator()->create([
             'must_change_password' => false,
         ]);
         $user->assignRole('administrator');
-
-        $this->assertTrue($user->hasMfaRequired());
-    }
-
-    public function test_tribunal_panel_requires_mfa(): void
-    {
-        $user = User::factory()->create([
-            'role_type' => 'tribunal_panel',
-            'must_change_password' => false,
-        ]);
 
         $this->assertTrue($user->hasMfaRequired());
     }
@@ -273,7 +263,7 @@ class AuthSecurityFrameworkTest extends TestCase
         Notification::fake();
 
         $user = User::factory()->create([
-            'role_type' => 'tribunal_panel',
+            'role_type' => 'admin',
             'must_change_password' => false,
         ]);
         $user->assignRole('administrator');
@@ -288,7 +278,7 @@ class AuthSecurityFrameworkTest extends TestCase
     public function test_mfa_verify_check_logs_audit_on_success(): void
     {
         $user = User::factory()->create([
-            'role_type' => 'tribunal_panel',
+            'role_type' => 'admin',
             'must_change_password' => false,
         ]);
         $user->assignRole('administrator');
@@ -307,7 +297,7 @@ class AuthSecurityFrameworkTest extends TestCase
     public function test_mfa_verified_session_bypasses_middleware(): void
     {
         $user = User::factory()->create([
-            'role_type' => 'tribunal_panel',
+            'role_type' => 'admin',
             'must_change_password' => false,
         ]);
         $user->assignRole('administrator');

@@ -8,13 +8,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Url;
 use Livewire\Component;
-use Livewire\WithPagination;
-use Spatie\Permission\Models\Role;
 
 class UserManagement extends Component
 {
-    use WithPagination;
-
     #[Url]
     public string $search = '';
 
@@ -55,21 +51,6 @@ class UserManagement extends Component
         if (request()->has('action') && request()->get('action') === 'create') {
             $this->showCreateModal = true;
         }
-    }
-
-    public function updatingSearch(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingRoleFilter(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingStatusFilter(): void
-    {
-        $this->resetPage();
     }
 
     public function openCreateModal(): void
@@ -120,13 +101,16 @@ class UserManagement extends Component
             return;
         }
 
-        $user->update([
+        $attributes = [
             'name' => trim($validated['firstName'].' '.$validated['lastName']),
             'first_name' => $validated['firstName'],
             'last_name' => $validated['lastName'],
             'email' => $validated['email'],
+            'role_type' => $this->roleTypeForRole($validated['role']),
             ...($validated['password'] ? ['password' => Hash::make($validated['password'])] : []),
-        ]);
+        ];
+
+        $user->update($attributes);
 
         $user->syncRoles([$validated['role']]);
 
@@ -158,13 +142,16 @@ class UserManagement extends Component
             'role' => ['required', Rule::in(['administrator', 'staff'])],
         ]);
 
-        $user = User::create([
+        $attributes = [
             'name' => trim($validated['firstName'].' '.$validated['lastName']),
             'first_name' => $validated['firstName'],
             'last_name' => $validated['lastName'],
             'email' => $validated['email'],
+            'role_type' => $this->roleTypeForRole($validated['role']),
             'password' => Hash::make($validated['password']),
-        ]);
+        ];
+
+        $user = User::query()->create($attributes);
 
         $user->assignRole($validated['role']);
 
@@ -184,6 +171,14 @@ class UserManagement extends Component
 
         $this->closeCreateModal();
         session()->flash('message', 'User created successfully.');
+    }
+
+    private function roleTypeForRole(string $role): string
+    {
+        return match ($role) {
+            'administrator' => 'admin',
+            'staff' => 'osdw_staff',
+        };
     }
 
     public function openSuspendModal(int $userId): void
@@ -325,8 +320,7 @@ class UserManagement extends Component
             ->orderBy('created_at', 'desc');
 
         return view('livewire.admin.user-management', [
-            'users' => $query->paginate(10),
-            'roles' => Role::whereIn('name', ['administrator', 'staff'])->get(),
+            'users' => $query->get(),
         ])->layout('layouts.admin', ['title' => 'Staff & User Management']);
     }
 }

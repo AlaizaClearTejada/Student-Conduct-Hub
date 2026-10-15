@@ -3,7 +3,6 @@
 namespace App\Livewire\Admin;
 
 use App\Models\AuthAuditLog;
-use App\Models\User;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -25,7 +24,7 @@ class AuditLogs extends Component
     public string $dateTo = '';
 
     #[Url]
-    public string $userId = '';
+    public string $roleFilter = '';
 
     public function updatingSearch(): void
     {
@@ -47,14 +46,14 @@ class AuditLogs extends Component
         $this->resetPage();
     }
 
-    public function updatingUserId(): void
+    public function updatingRoleFilter(): void
     {
         $this->resetPage();
     }
 
     public function clearFilters(): void
     {
-        $this->reset(['search', 'eventType', 'dateFrom', 'dateTo', 'userId']);
+        $this->reset(['search', 'eventType', 'dateFrom', 'dateTo', 'roleFilter']);
         $this->resetPage();
     }
 
@@ -77,8 +76,8 @@ class AuditLogs extends Component
             ->when($this->dateTo, function ($q) {
                 $q->whereDate('created_at', '<=', $this->dateTo);
             })
-            ->when($this->userId, function ($q) {
-                $q->where('user_id', $this->userId);
+            ->when($this->roleFilter, function ($q) {
+                $q->whereHas('user', fn ($userQuery) => $userQuery->role($this->roleFilter));
             })
             ->orderBy('created_at', 'desc');
 
@@ -89,15 +88,9 @@ class AuditLogs extends Component
             ->sort()
             ->values();
 
-        // Get users that have audit logs
-        $users = User::whereHas('auditLogs')
-            ->orderBy('name')
-            ->get(['id', 'name', 'email']);
-
         return view('livewire.admin.audit-logs', [
-            'logs' => $query->paginate(20),
+            'logs' => $query->get(),
             'eventTypes' => $eventTypes,
-            'users' => $users,
         ])->layout('layouts.admin', ['title' => 'Audit Trails & Logs']);
     }
 }

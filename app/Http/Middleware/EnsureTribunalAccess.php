@@ -15,7 +15,7 @@ class EnsureTribunalAccess
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user() || ! in_array($request->user()->role_type, ['tribunal_panel', 'admin'], true)) {
+        if (! $request->user()?->canAccessTribunalModule()) {
             abort(403, 'Unauthorized action.');
         }
 

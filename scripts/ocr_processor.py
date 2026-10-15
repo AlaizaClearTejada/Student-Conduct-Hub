@@ -1,11 +1,20 @@
 import os
 import sys
+import warnings
 from pathlib import Path
 
 import cv2
-import fitz
 import numpy as np
 import pytesseract
+
+warnings.filterwarnings(
+    "ignore",
+    message=r".*fitz.*deprecated.*",
+    category=Warning,
+    module=r"(fitz|pymupdf)(\..*)?",
+)
+
+import pymupdf
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -15,7 +24,7 @@ def load_pages(file_path: Path) -> list[np.ndarray]:
     if file_path.suffix.lower() == ".pdf":
         images = []
 
-        with fitz.open(file_path) as document:
+        with pymupdf.open(file_path) as document:
             for page in document:
                 pixmap = page.get_pixmap(dpi=250, alpha=False)
                 image_data = np.frombuffer(pixmap.tobytes("png"), dtype=np.uint8)

@@ -143,26 +143,8 @@ class StudentRoster extends Component
         }
 
         try {
-            $importedCount = 0;
-
-            foreach ($this->previewValidRows as $row) {
-                // Double check it doesn't exist just in case (including archived)
-                if (User::withTrashed()->where('student_id', $row['student_id'])->exists() || User::withTrashed()->where('email', $row['email'])->exists()) {
-                    continue;
-                }
-
-                // Use their Student ID as the default password for convenience, or fallback to random
-                $plainPassword = $row['student_id'] ?: \Illuminate\Support\Str::random(10);
-                $row['password'] = \Illuminate\Support\Facades\Hash::make($plainPassword);
-
-                $user = User::create($row);
-                $user->assignRole('student');
-
-                // Queue the automated welcome email
-                \Illuminate\Support\Facades\Mail::to($user->email)->queue(new \App\Mail\StudentWelcomeMail($user, $plainPassword));
-
-                $importedCount++;
-            }
+            $import = new StudentImport;
+            $importedCount = $import->persistStudents($this->previewValidRows);
 
             if ($importedCount > 0) {
                 $this->importResult = "Successfully imported {$importedCount} student(s).";

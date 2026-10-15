@@ -16,7 +16,7 @@ class TribunalCaseFactory extends Factory
             'case_number' => 'CSE-'.$this->faker->unique()->numberBetween(1000, 9999),
             'title' => $this->faker->sentence(4),
             'description' => $this->faker->paragraph(),
-            'status' => CaseStatus::UNDER_INFORMAL_DISCUSSION,
+            'status' => CaseStatus::UNDER_INVESTIGATION,
         ];
     }
 }

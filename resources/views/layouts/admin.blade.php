@@ -25,12 +25,13 @@
                 <img src="{{ asset('LOGO/csu.png') }}" alt="CSU Logo" class="h-10 w-10 object-contain">
                 <div>
                     <h1 class="text-sm font-bold text-white">SCMS Admin</h1>
-                    <p class="text-xs text-gray-300">Administrator Portal</p>
+                    <p class="text-xs text-gray-300">OSDW Administrator Portal</p>
                 </div>
             </div>
 
             <!-- Navigation -->
             <nav @click="if ($event.target.closest('a')) sidebarOpen = false" class="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+                @role('administrator')
                 <a href="{{ route('admin.dashboard') }}"
                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('admin.dashboard') ? 'bg-inferno text-white' : 'text-gray-200 hover:bg-black-cherry hover:text-white' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,16 +72,17 @@
                     </svg>
                     System Configuration
                 </a>
+                @endrole
 
-                @if(auth()->check() && in_array(auth()->user()->role_type, ['tribunal_panel', 'admin'], true))
+                @can('access tribunal module')
                 <a href="{{ route('tribunal.cases.index') }}"
                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ request()->routeIs('tribunal.cases*') ? 'bg-inferno text-white' : 'text-gray-200 hover:bg-black-cherry hover:text-white' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18m-4-2h8m-8-3H5l-3-8h8l-2 8zm8 0h3l3-8h-8l2 8zM4 8l4-3 4 3m4 0l4-3 4 3"/>
                     </svg>
                     Tribunal Module
                 </a>
-                @endif
+                @endcan
             </nav>
 
             <!-- Session Info -->

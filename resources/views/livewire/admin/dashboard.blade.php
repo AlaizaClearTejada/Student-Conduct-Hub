@@ -61,12 +61,12 @@
             </div>
         </div>
 
-        <!-- System Health -->
+        <!-- Cases Resolved -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-500">System Health</p>
-                    <p class="text-3xl font-bold text-green-600 mt-1">Healthy</p>
+                    <p class="text-sm font-medium text-gray-500">Cases Resolved</p>
+                    <p class="text-3xl font-bold text-green-600 mt-1">{{ $resolvedCasesCount }}</p>
                 </div>
                 <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -75,62 +75,12 @@
                 </div>
             </div>
             <div class="mt-4 flex items-center text-sm">
-                <span class="text-green-600 font-medium">All systems operational</span>
+                <span class="text-green-600 font-medium">Resolved conduct cases</span>
             </div>
         </div>
     </div>
 
-    <!-- Two-Column Layout -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Security Alerts Panel -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-semibold text-mahogany">Security Alerts</h3>
-                    <span class="px-2.5 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">
-                        {{ count($securityAlerts) }} alerts
-                    </span>
-                </div>
-            </div>
-            <div class="p-6 space-y-4">
-                @forelse($securityAlerts as $alert)
-                    <div class="flex gap-4 p-4 rounded-lg @if($alert['type'] === 'danger') bg-red-50 border border-red-200 @elseif($alert['type'] === 'warning') bg-amber-50 border border-amber-200 @else bg-green-50 border border-green-200 @endif">
-                        <div class="flex-shrink-0">
-                            @if($alert['type'] === 'danger')
-                                <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                </svg>
-                            @elseif($alert['type'] === 'warning')
-                                <svg class="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                </svg>
-                            @else
-                                <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                </svg>
-                            @endif
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium @if($alert['type'] === 'danger') text-red-800 @elseif($alert['type'] === 'warning') text-amber-800 @else text-green-800 @endif">
-                                {{ $alert['title'] }}
-                            </p>
-                            <p class="text-sm @if($alert['type'] === 'danger') text-red-700 @elseif($alert['type'] === 'warning') text-amber-700 @else text-green-700 @endif mt-1">
-                                {{ $alert['message'] }}
-                            </p>
-                        </div>
-                        <span class="text-xs text-gray-500 flex-shrink-0">{{ $alert['time'] }}</span>
-                    </div>
-                @empty
-                    <div class="text-center py-8">
-                        <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                        </svg>
-                        <p class="text-gray-500">No security alerts</p>
-                    </div>
-                @endforelse
-            </div>
-        </div>
-
+    <div class="grid grid-cols-1 gap-6">
         <!-- Recent Activity Feed -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200">
             <div class="px-6 py-4 border-b border-gray-200">

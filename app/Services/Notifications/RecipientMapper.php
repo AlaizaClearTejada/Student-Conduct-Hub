@@ -43,9 +43,12 @@ class RecipientMapper
 
                 case 'tribunal_chair':
                 case 'tribunal':
+                case 'osdw_admin':
                 case 'osdw_staff':
-                    // Fetch users with specific system roles using Spatie Permission
-                    $users = User::role(str_replace('_', ' ', $role))->get();
+                    $recipientRole = in_array($role, ['tribunal_chair', 'tribunal', 'osdw_admin'], true)
+                        ? 'administrator'
+                        : 'staff';
+                    $users = User::role($recipientRole)->get();
                     $recipients = $recipients->concat($users);
                     break;
             }
@@ -63,7 +66,7 @@ class RecipientMapper
         if ($user->hasRole('student')) {
             return 'student';
         }
-        if ($user->hasRole('tribunal panel') || $user->hasRole('tribunal chair')) {
+        if ($user->hasRole('administrator')) {
             return 'tribunal';
         }
 

@@ -2,12 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Jobs\ProcessDocumentOcr;
 use App\Livewire\Staff\FormalChargeForm;
 use App\Models\IncidentReport;
 use App\Models\OffenseRule;
-use App\Models\TribunalCase;
 use App\Models\User;
+use App\Services\ComplaintLetterOcrService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
@@ -85,8 +84,24 @@ class FormalChargeFormTest extends TestCase
             ->assertSet('studentName', $this->student->name)
             ->assertSet('email', $this->student->email)
             ->assertSet('college', 'COLLEGE OF INFORMATION AND COMPUTING SCIENCES')
+            ->assertSet('program', $this->student->program)
             ->assertSet('yearLevel', '2nd Year')
             ->assertSet('section', 'A');
+    }
+
+    public function test_selecting_a_student_from_lookup_populates_form_identity_fields(): void
+    {
+        Livewire::actingAs($this->staff)
+            ->test(FormalChargeForm::class)
+            ->dispatch('staff-student-selected', userId: $this->student->id)
+            ->assertSet('studentIdInput', $this->student->student_id)
+            ->assertSet('studentDbId', $this->student->id)
+            ->assertSet('studentName', $this->student->name)
+            ->assertSet('college', $this->student->college)
+            ->assertSet('program', $this->student->program)
+            ->assertSet('yearLevel', $this->student->year_level)
+            ->assertSet('section', $this->student->section)
+            ->assertSet('studentVerified', true);
     }
 
     public function test_entering_invalid_student_id_does_not_populate_fields(): void
@@ -115,6 +130,7 @@ class FormalChargeFormTest extends TestCase
             ->set('yearLevel', '2nd Year')
             ->set('section', 'A')
             ->set('email', $this->student->email)
+            ->set('complainantName', 'Jane Doe')
             ->set('offenseId', $this->offense->id)
             ->set('incidentDescription', 'The student was caught submitting a plagiarized research paper during the final exam week.')
             ->set('evidenceFile', $file)
@@ -126,6 +142,7 @@ class FormalChargeFormTest extends TestCase
             'reporter_id' => $this->staff->id,
             'student_id' => $this->student->id,
             'offense_id' => $this->offense->id,
+            'complainant_name' => 'Jane Doe',
             'report_type' => 'Formal Charge',
             'status' => 'Submitted',
         ]);
@@ -134,10 +151,57 @@ class FormalChargeFormTest extends TestCase
         $this->assertStringStartsWith('INC-', $report->tracking_number);
         $this->assertStringStartsWith('confidential_evidence/', $report->evidence_path);
 
-        $tribunalCase = TribunalCase::where('incident_report_id', $report->id)->firstOrFail();
-        $this->assertSame($report->evidence_path, $tribunalCase->document_path);
-        $this->assertSame($report->description, $tribunalCase->description);
-        Queue::assertPushed(ProcessDocumentOcr::class);
+        $this->assertDatabaseHas('tribunal_cases', [
+            'case_number' => $report->tracking_number,
+            'incident_report_id' => $report->id,
+            'is_formal_charge' => true,
+        ]);
+        $this->assertDatabaseCount('tribunal_cases', 1);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_uploading_a_complaint_scan_extracts_text_and_suggests_student_and_offense(): void
+    {
+        $this->offense->update([
+            'title' => 'Academic Dishonesty',
+            'description' => 'Plagiarism and cheating in academic assignments.',
+        ]);
+        $ocrText = "Student ID: {$this->student->student_id}\nComplaint: Academic dishonesty through plagiarism.";
+        $ocr = \Mockery::mock(ComplaintLetterOcrService::class)->makePartial();
+        $ocr->shouldReceive('extractText')->once()->andReturn($ocrText);
+        app()->instance(ComplaintLetterOcrService::class, $ocr);
+
+        Livewire::actingAs($this->staff)
+            ->test(FormalChargeForm::class)
+            ->set('complaintLetter', UploadedFile::fake()->image('complaint.png'))
+            ->assertSet('ocrExtractedText', $ocrText)
+            ->assertSet('incidentDescription', $ocrText)
+            ->assertSet('studentIdInput', $this->student->student_id)
+            ->assertSet('studentVerified', true)
+            ->assertSet('studentName', $this->student->name)
+            ->assertSet('offenseId', $this->offense->id);
+    }
+
+    public function test_formal_charge_ocr_selects_respondent_not_complainant(): void
+    {
+        Role::firstOrCreate(['name' => 'student']);
+        $respondent = User::factory()->student()->create([
+            'name' => 'Mike Paet',
+            'student_id' => '24-10005',
+        ]);
+        $respondent->assignRole('student');
+
+        $ocrText = 'I, Alaiza Clear Tejada (Student ID: 24-00006), report that I witnessed the student, Mike Paet (Student ID: 24-10005).';
+        $ocr = \Mockery::mock(ComplaintLetterOcrService::class)->makePartial();
+        $ocr->shouldReceive('extractText')->once()->andReturn($ocrText);
+        app()->instance(ComplaintLetterOcrService::class, $ocr);
+
+        Livewire::actingAs($this->staff)
+            ->test(FormalChargeForm::class)
+            ->set('complaintLetter', UploadedFile::fake()->image('complaint.png'))
+            ->assertSet('studentIdInput', '24-10005')
+            ->assertSet('studentName', 'Mike Paet')
+            ->assertSet('complainantName', 'Alaiza Clear Tejada');
     }
 
     // ─── Validation Failures ────────────────────────────────────────────────
